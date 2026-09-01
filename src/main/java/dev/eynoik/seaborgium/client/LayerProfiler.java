@@ -32,10 +32,11 @@ public final class LayerProfiler {
     }
 
     public static void recordDecision(Class<?> layerClass, boolean wasRendered) {
-        if (!SeaborgiumConfig.DEBUG_TELEMETRY.get()) {
+        if (!shouldCollect()) {
             return;
         }
 
+        TimedProfileSession.recordDecision(layerClass, wasRendered);
         evaluated++;
         if (wasRendered) {
             rendered++;
@@ -50,7 +51,7 @@ public final class LayerProfiler {
     }
 
     public static long beginSample() {
-        if (!SeaborgiumConfig.DEBUG_TELEMETRY.get()) {
+        if (!shouldCollect()) {
             return 0L;
         }
         return (sampleSequence++ & SAMPLE_MASK) == 0L ? System.nanoTime() : 0L;
@@ -67,12 +68,14 @@ public final class LayerProfiler {
         timing.totalNanos += elapsed;
         timing.maxNanos = Math.max(timing.maxNanos, elapsed);
         COST_MODELS.computeIfAbsent(layerClass, ignored -> new CostModel()).observe(elapsed);
+        TimedProfileSession.recordSample(layerClass, elapsed);
     }
 
     public static void recordFrame() {
-        if (!SeaborgiumConfig.DEBUG_TELEMETRY.get()) {
+        if (!shouldCollect()) {
             return;
         }
+        TimedProfileSession.recordFrame();
         frames++;
         if ((frames & 63) == 0) {
             rotateIfNeeded(System.nanoTime());
@@ -85,6 +88,15 @@ public final class LayerProfiler {
         }
         rotateIfNeeded(System.nanoTime());
         return latest;
+    }
+
+    static double modeledAverageNanos(Class<?> layerClass) {
+        CostModel model = COST_MODELS.get(layerClass);
+        return model == null || model.observations == 0 ? Double.NaN : model.averageNanos;
+    }
+
+    private static boolean shouldCollect() {
+        return SeaborgiumConfig.DEBUG_TELEMETRY.get() || TimedProfileSession.isActive();
     }
 
     private static void rotateIfNeeded(long now) {

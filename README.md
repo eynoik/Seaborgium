@@ -15,16 +15,16 @@ The first implementation adds screen-space layer budgeting for living entities:
 - exposes thresholds and layer class-name keywords in the NeoForge client config.
 - adds an optional compact telemetry HUD with rendered/skipped counts and sampled timings for expensive layer classes. Bind its toggle under Controls -> Seaborgium.
 - retains per-layer cost models and estimates saved CPU time per frame instead of treating every skipped call as equally valuable.
+- provides `/seaborgium profile 60` for a bounded in-game test. It writes FPS, layer counts, sampled costs and estimated savings to `seaborgium-reports` in the game directory. Use `/seaborgium profile stop` to save a partial run early.
 
 This is an early alpha. Defaults are intentionally conservative and need profiling in real modpacks before a public release.
 
 ## Planned work
 
-1. In-game statistics and a repeatable benchmark scene.
-2. Per-layer CPU timing with a low-overhead sampling profiler.
-3. Dynamic frame-budget pressure instead of static thresholds alone.
-4. Shadow and glint budgeting.
-5. Compatibility tests with Sodium, ImmediatelyFast, EntityCulling, Iris/Sable, GeckoLib, Create/Flywheel and Accelerated Rendering.
+1. Repeatable A/B benchmark mode with a controlled layer-budget toggle.
+2. Dynamic frame-budget pressure instead of static thresholds alone.
+3. Shadow and glint budgeting.
+4. Compatibility tests with Sodium, ImmediatelyFast, EntityCulling, Iris/Sable, GeckoLib, Create/Flywheel and Accelerated Rendering.
 
 ## Build
 

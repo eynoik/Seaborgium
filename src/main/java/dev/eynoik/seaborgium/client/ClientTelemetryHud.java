@@ -1,18 +1,21 @@
 package dev.eynoik.seaborgium.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import dev.eynoik.seaborgium.Seaborgium;
 import dev.eynoik.seaborgium.SeaborgiumConfig;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.commands.Commands;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 
 import java.util.List;
 import java.util.Locale;
@@ -36,6 +39,18 @@ public final class ClientTelemetryHud {
         while (TOGGLE_HUD.consumeClick()) {
             visible = !visible;
         }
+    }
+
+    @SubscribeEvent
+    public static void registerClientCommands(RegisterClientCommandsEvent event) {
+        event.getDispatcher().register(Commands.literal("seaborgium")
+                .then(Commands.literal("profile")
+                        .executes(context -> TimedProfileSession.start(60) ? 1 : 0)
+                        .then(Commands.argument("seconds", IntegerArgumentType.integer(5, 600))
+                                .executes(context -> TimedProfileSession.start(
+                                        IntegerArgumentType.getInteger(context, "seconds")) ? 1 : 0))
+                        .then(Commands.literal("stop")
+                                .executes(context -> TimedProfileSession.stop() ? 1 : 0))));
     }
 
     @SubscribeEvent
@@ -64,14 +79,24 @@ public final class ClientTelemetryHud {
         );
         GuiGraphics graphics = event.getGuiGraphics();
         Font font = minecraft.font;
+        String profileSummary = TimedProfileSession.isActive()
+                ? "Timed profile: " + TimedProfileSession.remainingSeconds() + " s remaining"
+                : "";
         int width = Math.max(font.width(summary), Math.max(font.width(savedSummary), font.width(timingSummary)));
+        if (!profileSummary.isEmpty()) {
+            width = Math.max(width, font.width(profileSummary));
+        }
         int x = graphics.guiWidth() - width - 6;
         int y = 6;
 
-        graphics.fill(x - 3, y - 3, graphics.guiWidth() - 3, y + 29, 0x90000000);
+        int bottom = profileSummary.isEmpty() ? y + 29 : y + 39;
+        graphics.fill(x - 3, y - 3, graphics.guiWidth() - 3, bottom, 0x90000000);
         graphics.drawString(font, summary, x, y, 0xFFE0E0E0, true);
         graphics.drawString(font, savedSummary, x, y + 10, 0xFFB8D8B8, true);
         graphics.drawString(font, timingSummary, x, y + 20, 0xFFAAAAAA, true);
+        if (!profileSummary.isEmpty()) {
+            graphics.drawString(font, profileSummary, x, y + 30, 0xFFFFD070, true);
+        }
     }
 
     private static String formatTimingSummary(List<LayerProfiler.LayerTiming> timings) {
