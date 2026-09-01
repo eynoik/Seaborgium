@@ -53,9 +53,19 @@ public final class ClientTelemetryHud {
                                 .executes(context -> TimedProfileSession.stop() ? 1 : 0)))
                 .then(Commands.literal("benchmark")
                         .executes(context -> AbBenchmarkSession.start(60) ? 1 : 0)
-                        .then(Commands.argument("seconds", IntegerArgumentType.integer(30, 300))
+                        .then(Commands.argument("seconds", IntegerArgumentType.integer(40, 300))
                                 .executes(context -> AbBenchmarkSession.start(
                                         IntegerArgumentType.getInteger(context, "seconds")) ? 1 : 0))
+                        .then(Commands.literal("static")
+                                .executes(context -> AbBenchmarkSession.start(60) ? 1 : 0)
+                                .then(Commands.argument("seconds", IntegerArgumentType.integer(40, 300))
+                                        .executes(context -> AbBenchmarkSession.start(
+                                                IntegerArgumentType.getInteger(context, "seconds")) ? 1 : 0)))
+                        .then(Commands.literal("play")
+                                .executes(context -> AbBenchmarkSession.startPlay(60) ? 1 : 0)
+                                .then(Commands.argument("seconds", IntegerArgumentType.integer(30, 300))
+                                        .executes(context -> AbBenchmarkSession.startPlay(
+                                                IntegerArgumentType.getInteger(context, "seconds")) ? 1 : 0)))
                         .then(Commands.literal("stop")
                                 .executes(context -> AbBenchmarkSession.stop() ? 1 : 0))));
     }
@@ -91,7 +101,7 @@ public final class ClientTelemetryHud {
         Font font = minecraft.font;
         String profileSummary;
         if (AbBenchmarkSession.isActive()) {
-            profileSummary = "A/B benchmark (ABBA): "
+            profileSummary = "A/B benchmark (" + AbBenchmarkSession.statusLabel() + "): "
                     + AbBenchmarkSession.remainingSeconds() + " s remaining";
         } else if (TimedProfileSession.isActive()) {
             profileSummary = "Timed profile: " + TimedProfileSession.remainingSeconds() + " s remaining";

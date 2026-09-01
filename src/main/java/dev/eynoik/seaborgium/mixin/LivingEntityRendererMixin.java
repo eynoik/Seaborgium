@@ -3,6 +3,7 @@ package dev.eynoik.seaborgium.mixin;
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.eynoik.seaborgium.client.LayerBudget;
 import dev.eynoik.seaborgium.client.LayerProfiler;
+import dev.eynoik.seaborgium.client.EntityRendererProfiler;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
@@ -10,11 +11,50 @@ import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(LivingEntityRenderer.class)
 public abstract class LivingEntityRendererMixin<T extends LivingEntity, M extends EntityModel<T>> {
+    @Unique
+    private long seaborgium$rendererSampleStart;
+
+    @Inject(
+            method = "render(Lnet/minecraft/world/entity/LivingEntity;FFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",
+            at = @At("HEAD")
+    )
+    private void seaborgium$beginRendererProfile(
+            T entity,
+            float entityYaw,
+            float partialTick,
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            int packedLight,
+            CallbackInfo callbackInfo
+    ) {
+        seaborgium$rendererSampleStart = EntityRendererProfiler.beginSample(getClass());
+    }
+
+    @Inject(
+            method = "render(Lnet/minecraft/world/entity/LivingEntity;FFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",
+            at = @At("RETURN")
+    )
+    private void seaborgium$endRendererProfile(
+            T entity,
+            float entityYaw,
+            float partialTick,
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            int packedLight,
+            CallbackInfo callbackInfo
+    ) {
+        EntityRendererProfiler.endSample(getClass(), seaborgium$rendererSampleStart);
+        seaborgium$rendererSampleStart = 0L;
+    }
+
     @Redirect(
             method = "render(Lnet/minecraft/world/entity/LivingEntity;FFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",
             at = @At(

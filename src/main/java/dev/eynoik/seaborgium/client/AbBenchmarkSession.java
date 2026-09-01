@@ -24,6 +24,8 @@ public final class AbBenchmarkSession {
     // ABBA cancels much of the linear scene drift while avoiding a permanent
     // odd/even-frame bias: OFF, ON, ON, OFF, then repeat.
     private static final boolean[] FRAME_PATTERN = {false, true, true, false};
+    private static final long STATIC_BLOCK_NANOS = 10_000_000_000L;
+    private static final long STATIC_WARMUP_NANOS = 2_000_000_000L;
     private static final long INVALID_FRAME_NANOS = 2_000_000_000L;
     private static final DateTimeFormatter FILE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
     private static Session active;
@@ -32,6 +34,18 @@ public final class AbBenchmarkSession {
     }
 
     public static boolean start(int seconds) {
+        if (seconds % 20 != 0) {
+            message("Seaborgium: static benchmark duration must be divisible by 20 seconds.", 0xFFFFAA00);
+            return false;
+        }
+        return start(seconds, Mode.STATIC_BLOCKS);
+    }
+
+    public static boolean startPlay(int seconds) {
+        return start(seconds, Mode.PLAY_ABBA);
+    }
+
+    private static boolean start(int seconds, Mode mode) {
         if (active != null) {
             message("Seaborgium: an A/B benchmark is already running (" + remainingSeconds() + " s left).", 0xFFFFAA00);
             return false;
@@ -48,9 +62,13 @@ public final class AbBenchmarkSession {
         }
 
         long now = System.nanoTime();
-        active = new Session(seconds, now, now + seconds * 1_000_000_000L);
+        active = new Session(seconds, now, now + seconds * 1_000_000_000L, mode);
         LayerBudget.setBenchmarkEnabledOverride(false);
-        message("Seaborgium: frame-matched A/B benchmark started (OFF-ON-ON-OFF).", 0xFF55FF55);
+        if (mode == Mode.STATIC_BLOCKS) {
+            message("Seaborgium: static A/B started. Keep the camera fixed; warmup frames are excluded.", 0xFF55FF55);
+        } else {
+            message("Seaborgium: gameplay A/B started (OFF-ON-ON-OFF).", 0xFF55FF55);
+        }
         return true;
     }
 
@@ -71,6 +89,10 @@ public final class AbBenchmarkSession {
         return active != null && active.optimizationEnabled;
     }
 
+    public static String statusLabel() {
+        return active == null || active.mode == Mode.STATIC_BLOCKS ? "STATIC" : "PLAY";
+    }
+
     public static int remainingSeconds() {
         if (active == null) {
             return 0;
@@ -81,7 +103,7 @@ public final class AbBenchmarkSession {
 
     static void recordDecision(Class<?> layerClass, boolean rendered) {
         Session session = active;
-        if (session == null) {
+        if (session == null || !session.collecting) {
             return;
         }
         PhaseData phase = session.currentPhase();
@@ -98,10 +120,36 @@ public final class AbBenchmarkSession {
 
     static void recordSample(Class<?> layerClass, long elapsedNanos) {
         Session session = active;
-        if (session == null) {
+        if (session == null || !session.collecting) {
             return;
         }
         LayerStats stats = session.currentPhase().layers.computeIfAbsent(layerClass, ignored -> new LayerStats());
+        stats.samples++;
+        stats.sampledNanos += elapsedNanos;
+        stats.maxSampleNanos = Math.max(stats.maxSampleNanos, elapsedNanos);
+    }
+
+    static void recordEntityRender(Class<?> rendererClass) {
+        Session session = active;
+        if (session == null || !session.collecting) {
+            return;
+        }
+        EntityStats stats = session.currentPhase().entityRenderers.computeIfAbsent(
+                rendererClass,
+                ignored -> new EntityStats()
+        );
+        stats.calls++;
+    }
+
+    static void recordEntitySample(Class<?> rendererClass, long elapsedNanos) {
+        Session session = active;
+        if (session == null || !session.collecting) {
+            return;
+        }
+        EntityStats stats = session.currentPhase().entityRenderers.computeIfAbsent(
+                rendererClass,
+                ignored -> new EntityStats()
+        );
         stats.samples++;
         stats.sampledNanos += elapsedNanos;
         stats.maxSampleNanos = Math.max(stats.maxSampleNanos, elapsedNanos);
@@ -122,10 +170,12 @@ public final class AbBenchmarkSession {
         long now = System.nanoTime();
         if (session.lastFrameNanos != 0L) {
             long frameNanos = now - session.lastFrameNanos;
-            if (frameNanos > 0L && frameNanos < INVALID_FRAME_NANOS) {
+            if (session.collecting && frameNanos > 0L && frameNanos < INVALID_FRAME_NANOS) {
                 session.currentPhase().frameTimes.add(frameNanos);
-            } else {
+            } else if (session.collecting) {
                 session.currentPhase().discardedFrames++;
+            } else {
+                session.currentPhase().warmupFrames++;
             }
         }
         session.lastFrameNanos = now;
@@ -135,13 +185,25 @@ public final class AbBenchmarkSession {
             return;
         }
 
-        session.patternIndex = (session.patternIndex + 1) % FRAME_PATTERN.length;
-        boolean nextFrameEnabled = FRAME_PATTERN[session.patternIndex];
-        if (nextFrameEnabled != session.optimizationEnabled) {
+        if (session.mode == Mode.PLAY_ABBA) {
+            session.patternIndex = (session.patternIndex + 1) % FRAME_PATTERN.length;
+            setNextFrameMode(session, FRAME_PATTERN[session.patternIndex]);
+        } else {
+            if (now >= session.blockDeadlineNanos) {
+                session.blockStartedNanos = now;
+                session.blockDeadlineNanos = now + STATIC_BLOCK_NANOS;
+                setNextFrameMode(session, !session.optimizationEnabled);
+            }
+            session.collecting = now - session.blockStartedNanos >= STATIC_WARMUP_NANOS;
+        }
+    }
+
+    private static void setNextFrameMode(Session session, boolean enabled) {
+        if (enabled != session.optimizationEnabled) {
             session.phaseSwitches++;
         }
-        session.optimizationEnabled = nextFrameEnabled;
-        LayerBudget.setBenchmarkEnabledOverride(nextFrameEnabled);
+        session.optimizationEnabled = enabled;
+        LayerBudget.setBenchmarkEnabledOverride(enabled);
     }
 
     private static void finish(String status) {
@@ -164,6 +226,10 @@ public final class AbBenchmarkSession {
     private static Path writeReport(Session session, long finishedAt, String status) throws IOException {
         Metrics off = Metrics.calculate(session.off.frameTimes);
         Metrics on = Metrics.calculate(session.on.frameTimes);
+        RendererEstimate rendererOff = RendererEstimate.calculate(session.off);
+        RendererEstimate rendererOn = RendererEstimate.calculate(session.on);
+        List<LayerRow> rows = buildLayerRows(session);
+        double measuredLayerOffNanos = rows.stream().mapToDouble(LayerRow::estimatedOffNanos).sum();
         double measuredSeconds = Math.max(0.001, (finishedAt - session.startedNanos) / 1_000_000_000.0);
 
         StringBuilder report = new StringBuilder(8192);
@@ -172,7 +238,10 @@ public final class AbBenchmarkSession {
                 .append("Status: ").append(status).append('\n')
                 .append(String.format(Locale.ROOT, "Requested duration: %d s%n", session.requestedSeconds))
                 .append(String.format(Locale.ROOT, "Measured duration: %.3f s%n", measuredSeconds))
-                .append("Frame pattern: OFF, ON, ON, OFF (ABBA)\n")
+                .append("Mode: ").append(session.mode.reportName).append('\n')
+                .append(session.mode == Mode.STATIC_BLOCKS
+                        ? "Pattern: 10 s blocks with the first 2 s excluded as warmup\n"
+                        : "Frame pattern: OFF, ON, ON, OFF (ABBA)\n")
                 .append(String.format(Locale.ROOT, "Mode switches: %d%n", session.phaseSwitches))
                 .append('\n')
                 .append("Actual frame-time comparison\n")
@@ -195,6 +264,29 @@ public final class AbBenchmarkSession {
                 .append(String.format(Locale.ROOT, "measured frames        | %10d | %9d |%n", off.frames, on.frames))
                 .append(String.format(Locale.ROOT, "discarded intervals    | %10d | %9d |%n",
                         session.off.discardedFrames, session.on.discardedFrames))
+                .append(String.format(Locale.ROOT, "warmup intervals       | %10d | %9d |%n",
+                        session.off.warmupFrames, session.on.warmupFrames))
+                .append('\n')
+                .append("Whole living-entity renderer (sampled)\n")
+                .append("--------------------------------------\n")
+                .append("metric                 | budget OFF | budget ON | ON difference\n")
+                .append(String.format(Locale.ROOT, "render calls           | %10d | %9d |%n",
+                        rendererOff.calls, rendererOn.calls))
+                .append(String.format(Locale.ROOT, "timing samples         | %10d | %9d |%n",
+                        rendererOff.samples, rendererOn.samples))
+                .append(String.format(Locale.ROOT, "estimated ms/frame     | %10.3f | %9.3f | %+8.3f (%+.2f%%)%n",
+                        rendererOff.estimatedMillisPerFrame(off.frames),
+                        rendererOn.estimatedMillisPerFrame(on.frames),
+                        rendererOn.estimatedMillisPerFrame(on.frames) - rendererOff.estimatedMillisPerFrame(off.frames),
+                        percentDifference(rendererOn.averageNanos, rendererOff.averageNanos)))
+                .append(String.format(Locale.ROOT, "average render us      | %10.2f | %9.2f | %+8.2f%n",
+                        rendererOff.averageNanos / 1_000.0,
+                        rendererOn.averageNanos / 1_000.0,
+                        (rendererOn.averageNanos - rendererOff.averageNanos) / 1_000.0))
+                .append(String.format(Locale.ROOT, "sampled layer share    | %9.2f%% |         - |%n",
+                        rendererOff.estimatedTotalNanos == 0.0
+                                ? 0.0
+                                : measuredLayerOffNanos * 100.0 / rendererOff.estimatedTotalNanos))
                 .append('\n')
                 .append("Layer calls\n")
                 .append("-----------\n")
@@ -214,7 +306,6 @@ public final class AbBenchmarkSession {
                 .append("------------------------------------------------\n")
                 .append("off_calls | on_rendered | on_skipped | samples | avg_us | est_off_ms | class\n");
 
-        List<LayerRow> rows = buildLayerRows(session);
         for (LayerRow row : rows.subList(0, Math.min(40, rows.size()))) {
             report.append(String.format(Locale.ROOT, "%9d | %11d | %10d | %7d | %6.2f | %10.3f | %s%n",
                     row.offRendered,
@@ -227,18 +318,35 @@ public final class AbBenchmarkSession {
         }
 
         report.append('\n')
+                .append("Top whole-renderer costs during budget-OFF measurement\n")
+                .append("------------------------------------------------------\n")
+                .append("off_calls | on_calls | off_samples | off_avg_us | on_avg_us | renderer\n");
+        List<EntityRow> entityRows = buildEntityRows(session);
+        for (EntityRow row : entityRows.subList(0, Math.min(30, entityRows.size()))) {
+            report.append(String.format(Locale.ROOT, "%9d | %8d | %11d | %10.2f | %9.2f | %s%n",
+                    row.off.calls,
+                    row.on.calls,
+                    row.off.samples,
+                    row.off.averageNanos() / 1_000.0,
+                    row.on.averageNanos() / 1_000.0,
+                    row.rendererClass.getName()));
+        }
+
+        report.append('\n')
                 .append("Notes\n")
                 .append("-----\n")
-                .append("The benchmark uses an OFF-ON-ON-OFF frame pattern to compare adjacent render workloads.\n")
-                .append("ABBA reduces linear scene drift and odd/even-frame bias, including during normal movement.\n")
-                .append("A fixed camera remains the cleanest test; normal gameplay is useful as a second test.\n")
+                .append(session.mode == Mode.STATIC_BLOCKS
+                        ? "Static mode uses long blocks so GPU queues settle; warmup intervals are excluded.\n"
+                        : "Gameplay mode uses ABBA to reduce linear scene drift and odd/even-frame bias.\n")
+                .append("Static mode requires a fixed camera; gameplay mode is useful only as a secondary test.\n")
                 .append("FPS caps, VSync, chunk generation, menus and camera movement can hide or distort the result.\n")
                 .append("The existing sampled layer profiler remains active during both phases (1 in 64 rendered calls).\n")
                 .append("The original enabled config value is restored automatically when the benchmark ends.\n");
 
         Path directory = FMLPaths.GAMEDIR.get().resolve("seaborgium-reports");
         Files.createDirectories(directory);
-        Path output = directory.resolve("seaborgium-benchmark-" + LocalDateTime.now().format(FILE_TIME) + ".txt");
+        Path output = directory.resolve("seaborgium-benchmark-" + session.mode.fileName + "-"
+                + LocalDateTime.now().format(FILE_TIME) + ".txt");
         Files.writeString(output, report, StandardCharsets.UTF_8);
         return output;
     }
@@ -269,6 +377,16 @@ public final class AbBenchmarkSession {
         return rows;
     }
 
+    private static List<EntityRow> buildEntityRows(Session session) {
+        List<EntityRow> rows = new ArrayList<>();
+        for (Map.Entry<Class<?>, EntityStats> entry : session.off.entityRenderers.entrySet()) {
+            EntityStats on = session.on.entityRenderers.getOrDefault(entry.getKey(), EntityStats.EMPTY);
+            rows.add(new EntityRow(entry.getKey(), entry.getValue(), on));
+        }
+        rows.sort(Comparator.comparingDouble((EntityRow row) -> row.off.estimatedTotalNanos()).reversed());
+        return rows;
+    }
+
     private static double percent(int part, int whole) {
         return whole == 0 ? 0.0 : part * 100.0 / whole;
     }
@@ -288,17 +406,25 @@ public final class AbBenchmarkSession {
         private final int requestedSeconds;
         private final long startedNanos;
         private final long deadlineNanos;
+        private final Mode mode;
+        private long blockStartedNanos;
+        private long blockDeadlineNanos;
         private long lastFrameNanos;
         private boolean optimizationEnabled;
+        private boolean collecting;
         private int patternIndex;
         private int phaseSwitches;
         private final PhaseData off = new PhaseData();
         private final PhaseData on = new PhaseData();
 
-        private Session(int requestedSeconds, long startedNanos, long deadlineNanos) {
+        private Session(int requestedSeconds, long startedNanos, long deadlineNanos, Mode mode) {
             this.requestedSeconds = requestedSeconds;
             this.startedNanos = startedNanos;
             this.deadlineNanos = deadlineNanos;
+            this.mode = mode;
+            this.blockStartedNanos = startedNanos;
+            this.blockDeadlineNanos = startedNanos + STATIC_BLOCK_NANOS;
+            this.collecting = mode == Mode.PLAY_ABBA;
         }
 
         private PhaseData currentPhase() {
@@ -309,10 +435,12 @@ public final class AbBenchmarkSession {
     private static final class PhaseData {
         private final List<Long> frameTimes = new ArrayList<>();
         private final Map<Class<?>, LayerStats> layers = new HashMap<>();
+        private final Map<Class<?>, EntityStats> entityRenderers = new HashMap<>();
         private int evaluated;
         private int rendered;
         private int skipped;
         private int discardedFrames;
+        private int warmupFrames;
     }
 
     private static final class LayerStats {
@@ -324,8 +452,59 @@ public final class AbBenchmarkSession {
         private long maxSampleNanos;
     }
 
+    private static final class EntityStats {
+        private static final EntityStats EMPTY = new EntityStats();
+        private int calls;
+        private int samples;
+        private long sampledNanos;
+        private long maxSampleNanos;
+
+        private double averageNanos() {
+            return samples == 0 ? 0.0 : sampledNanos / (double) samples;
+        }
+
+        private double estimatedTotalNanos() {
+            return averageNanos() * calls;
+        }
+    }
+
     private record LayerRow(Class<?> layerClass, int offRendered, int onRendered, int onSkipped,
                             int samples, double averageNanos, double estimatedOffNanos) {
+    }
+
+    private record EntityRow(Class<?> rendererClass, EntityStats off, EntityStats on) {
+    }
+
+    private record RendererEstimate(int calls, int samples, double averageNanos, double estimatedTotalNanos) {
+        private static RendererEstimate calculate(PhaseData phase) {
+            int calls = 0;
+            int samples = 0;
+            double estimatedTotal = 0.0;
+            for (EntityStats stats : phase.entityRenderers.values()) {
+                calls += stats.calls;
+                samples += stats.samples;
+                estimatedTotal += stats.estimatedTotalNanos();
+            }
+            double average = calls == 0 ? 0.0 : estimatedTotal / calls;
+            return new RendererEstimate(calls, samples, average, estimatedTotal);
+        }
+
+        private double estimatedMillisPerFrame(int frames) {
+            return frames == 0 ? 0.0 : estimatedTotalNanos / frames / 1_000_000.0;
+        }
+    }
+
+    private enum Mode {
+        STATIC_BLOCKS("static-blocks", "static"),
+        PLAY_ABBA("gameplay-abba", "play");
+
+        private final String reportName;
+        private final String fileName;
+
+        Mode(String reportName, String fileName) {
+            this.reportName = reportName;
+            this.fileName = fileName;
+        }
     }
 
     private record Metrics(int frames, double averageFps, double onePercentLowFps, double averageMillis,
