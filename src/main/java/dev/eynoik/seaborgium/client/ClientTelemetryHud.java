@@ -50,14 +50,24 @@ public final class ClientTelemetryHud {
                                 .executes(context -> TimedProfileSession.start(
                                         IntegerArgumentType.getInteger(context, "seconds")) ? 1 : 0))
                         .then(Commands.literal("stop")
-                                .executes(context -> TimedProfileSession.stop() ? 1 : 0))));
+                                .executes(context -> TimedProfileSession.stop() ? 1 : 0)))
+                .then(Commands.literal("benchmark")
+                        .executes(context -> AbBenchmarkSession.start(60) ? 1 : 0)
+                        .then(Commands.argument("seconds", IntegerArgumentType.integer(30, 300))
+                                .executes(context -> AbBenchmarkSession.start(
+                                        IntegerArgumentType.getInteger(context, "seconds")) ? 1 : 0))
+                        .then(Commands.literal("stop")
+                                .executes(context -> AbBenchmarkSession.stop() ? 1 : 0))));
     }
 
     @SubscribeEvent
     public static void renderTelemetry(RenderGuiEvent.Post event) {
         Minecraft minecraft = Minecraft.getInstance();
         LayerProfiler.recordFrame();
-        if (!visible || minecraft.options.hideGui || !SeaborgiumConfig.DEBUG_TELEMETRY.get()) {
+        LayerBudget.finishFrame();
+        boolean forcedTelemetry = TimedProfileSession.isActive() || AbBenchmarkSession.isActive();
+        if (!visible || minecraft.options.hideGui
+                || (!SeaborgiumConfig.DEBUG_TELEMETRY.get() && !forcedTelemetry)) {
             return;
         }
 
@@ -79,9 +89,16 @@ public final class ClientTelemetryHud {
         );
         GuiGraphics graphics = event.getGuiGraphics();
         Font font = minecraft.font;
-        String profileSummary = TimedProfileSession.isActive()
-                ? "Timed profile: " + TimedProfileSession.remainingSeconds() + " s remaining"
-                : "";
+        String profileSummary;
+        if (AbBenchmarkSession.isActive()) {
+            String phase = AbBenchmarkSession.isOptimizationEnabled() ? "ON" : "OFF";
+            profileSummary = "A/B benchmark: budget " + phase + " | "
+                    + AbBenchmarkSession.remainingSeconds() + " s remaining";
+        } else if (TimedProfileSession.isActive()) {
+            profileSummary = "Timed profile: " + TimedProfileSession.remainingSeconds() + " s remaining";
+        } else {
+            profileSummary = "";
+        }
         int width = Math.max(font.width(summary), Math.max(font.width(savedSummary), font.width(timingSummary)));
         if (!profileSummary.isEmpty()) {
             width = Math.max(width, font.width(profileSummary));

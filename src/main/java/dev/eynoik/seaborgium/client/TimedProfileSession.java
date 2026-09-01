@@ -27,6 +27,10 @@ public final class TimedProfileSession {
     }
 
     public static boolean start(int seconds) {
+        if (AbBenchmarkSession.isActive()) {
+            message("Seaborgium: stop the A/B benchmark before starting a profile.", 0xFFFFAA00);
+            return false;
+        }
         if (active != null) {
             message("Seaborgium: a profile is already running (" + remainingSeconds() + " s left).", 0xFFFFAA00);
             return false;

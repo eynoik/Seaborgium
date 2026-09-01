@@ -11,6 +11,8 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.IdentityHashMap;
+import java.util.Map;
 
 /**
  * Makes a cheap screen-space estimate and decides whether a secondary entity
@@ -18,6 +20,8 @@ import java.util.Locale;
  */
 public final class LayerBudget {
     private static final double MIN_DISTANCE_SQUARED = 0.25;
+    private static final Map<Entity, Double> FRAME_PIXEL_AREAS = new IdentityHashMap<>();
+    private static Boolean benchmarkEnabledOverride;
     private static final ClassValue<String> LOWERCASE_CLASS_NAMES = new ClassValue<>() {
         @Override
         protected String computeValue(Class<?> type) {
@@ -29,7 +33,10 @@ public final class LayerBudget {
     }
 
     public static boolean shouldRender(RenderLayer<?, ?> layer, Entity entity, float partialTick) {
-        if (!SeaborgiumConfig.ENABLED.get()) {
+        boolean enabled = benchmarkEnabledOverride != null
+                ? benchmarkEnabledOverride
+                : SeaborgiumConfig.ENABLED.get();
+        if (!enabled) {
             return true;
         }
 
@@ -38,7 +45,12 @@ public final class LayerBudget {
             return true;
         }
 
-        double pixelArea = estimatePixelArea(minecraft, entity, partialTick);
+        // LivingEntityRenderer asks once per layer, often dozens of times for the
+        // same entity. Projection is invariant during a frame, so calculate it once.
+        double pixelArea = FRAME_PIXEL_AREAS.computeIfAbsent(
+                entity,
+                ignored -> estimatePixelArea(minecraft, entity, partialTick)
+        );
         if (!Double.isFinite(pixelArea)) {
             return true;
         }
@@ -58,6 +70,15 @@ public final class LayerBudget {
 
         return pixelArea >= SeaborgiumConfig.REDUCED_BELOW_PIXELS.get()
                 || !containsAny(layerName, SeaborgiumConfig.COSMETIC_LAYER_KEYWORDS.get());
+    }
+
+    static void finishFrame() {
+        FRAME_PIXEL_AREAS.clear();
+    }
+
+    static void setBenchmarkEnabledOverride(Boolean enabled) {
+        benchmarkEnabledOverride = enabled;
+        FRAME_PIXEL_AREAS.clear();
     }
 
     static double estimatePixelArea(Minecraft minecraft, Entity entity, float partialTick) {

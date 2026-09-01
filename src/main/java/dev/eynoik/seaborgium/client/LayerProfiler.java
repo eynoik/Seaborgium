@@ -37,6 +37,7 @@ public final class LayerProfiler {
         }
 
         TimedProfileSession.recordDecision(layerClass, wasRendered);
+        AbBenchmarkSession.recordDecision(layerClass, wasRendered);
         evaluated++;
         if (wasRendered) {
             rendered++;
@@ -69,6 +70,7 @@ public final class LayerProfiler {
         timing.maxNanos = Math.max(timing.maxNanos, elapsed);
         COST_MODELS.computeIfAbsent(layerClass, ignored -> new CostModel()).observe(elapsed);
         TimedProfileSession.recordSample(layerClass, elapsed);
+        AbBenchmarkSession.recordSample(layerClass, elapsed);
     }
 
     public static void recordFrame() {
@@ -76,6 +78,7 @@ public final class LayerProfiler {
             return;
         }
         TimedProfileSession.recordFrame();
+        AbBenchmarkSession.recordFrame();
         frames++;
         if ((frames & 63) == 0) {
             rotateIfNeeded(System.nanoTime());
@@ -83,7 +86,7 @@ public final class LayerProfiler {
     }
 
     public static Snapshot snapshot() {
-        if (!SeaborgiumConfig.DEBUG_TELEMETRY.get()) {
+        if (!shouldCollect()) {
             return Snapshot.EMPTY;
         }
         rotateIfNeeded(System.nanoTime());
@@ -96,7 +99,9 @@ public final class LayerProfiler {
     }
 
     private static boolean shouldCollect() {
-        return SeaborgiumConfig.DEBUG_TELEMETRY.get() || TimedProfileSession.isActive();
+        return SeaborgiumConfig.DEBUG_TELEMETRY.get()
+                || TimedProfileSession.isActive()
+                || AbBenchmarkSession.isActive();
     }
 
     private static void rotateIfNeeded(long now) {
