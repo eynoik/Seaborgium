@@ -13,7 +13,7 @@ The first implementation adds screen-space layer budgeting for living entities:
 - keeps all layers on the camera entity;
 - progressively removes cosmetic, non-essential and finally all secondary layers as projected size shrinks;
 - exposes thresholds and layer class-name keywords in the NeoForge client config.
-- adds F3 telemetry with rendered/skipped counts and sampled timings for the three most expensive layer classes.
+- adds an optional compact telemetry HUD with rendered/skipped counts and sampled timings for expensive layer classes. Bind its toggle under Controls -> Seaborgium.
 
 This is an early alpha. Defaults are intentionally conservative and need profiling in real modpacks before a public release.
 
