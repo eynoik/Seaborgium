@@ -26,7 +26,7 @@ This is an early alpha. Defaults are intentionally conservative and need profili
 
 ## Build
 
-Seaborgium targets Java 21, Minecraft 1.21.1 and NeoForge 21.1.249.
+Seaborgium targets Java 21, Minecraft 1.21.1 and NeoForge 21.1.248.
 
 ```bash
 ./gradlew build
