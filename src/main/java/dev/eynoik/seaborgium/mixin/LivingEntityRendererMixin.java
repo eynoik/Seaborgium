@@ -37,7 +37,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, M extend
             float headPitch
     ) {
         boolean shouldRender = LayerBudget.shouldRender(layer, entity, partialTick);
-        LayerProfiler.recordDecision(shouldRender);
+        LayerProfiler.recordDecision(layer.getClass(), shouldRender);
         if (shouldRender) {
             long sampleStart = LayerProfiler.beginSample();
             // The cast is required because RenderLayer erases T to Entity in the

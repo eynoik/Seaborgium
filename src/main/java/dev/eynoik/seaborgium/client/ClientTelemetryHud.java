@@ -41,6 +41,7 @@ public final class ClientTelemetryHud {
     @SubscribeEvent
     public static void renderTelemetry(RenderGuiEvent.Post event) {
         Minecraft minecraft = Minecraft.getInstance();
+        LayerProfiler.recordFrame();
         if (!visible || minecraft.options.hideGui || !SeaborgiumConfig.DEBUG_TELEMETRY.get()) {
             return;
         }
@@ -55,15 +56,22 @@ public final class ClientTelemetryHud {
         );
 
         String timingSummary = formatTimingSummary(snapshot.expensiveLayers());
+        String savedSummary = String.format(
+                Locale.ROOT,
+                "Estimated CPU saved: %.3f ms/frame (%.0f%% modeled)",
+                snapshot.estimatedSavedMillisPerFrame(),
+                snapshot.modeledPercent()
+        );
         GuiGraphics graphics = event.getGuiGraphics();
         Font font = minecraft.font;
-        int width = Math.max(font.width(summary), font.width(timingSummary));
+        int width = Math.max(font.width(summary), Math.max(font.width(savedSummary), font.width(timingSummary)));
         int x = graphics.guiWidth() - width - 6;
         int y = 6;
 
-        graphics.fill(x - 3, y - 3, graphics.guiWidth() - 3, y + 19, 0x90000000);
+        graphics.fill(x - 3, y - 3, graphics.guiWidth() - 3, y + 29, 0x90000000);
         graphics.drawString(font, summary, x, y, 0xFFE0E0E0, true);
-        graphics.drawString(font, timingSummary, x, y + 10, 0xFFAAAAAA, true);
+        graphics.drawString(font, savedSummary, x, y + 10, 0xFFB8D8B8, true);
+        graphics.drawString(font, timingSummary, x, y + 20, 0xFFAAAAAA, true);
     }
 
     private static String formatTimingSummary(List<LayerProfiler.LayerTiming> timings) {
