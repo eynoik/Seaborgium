@@ -26,15 +26,15 @@ public final class SeaborgiumConfig {
 
         BASE_ONLY_BELOW_PIXELS = builder
                 .comment("Below this area, render only the base model.")
-                .defineInRange("baseOnlyBelowPixels", 300.0, 0.0, 1_000_000.0);
+                .defineInRange("baseOnlyBelowPixels", 64.0, 0.0, 1_000_000.0);
 
         ESSENTIAL_ONLY_BELOW_PIXELS = builder
                 .comment("Below this area, keep only essential equipment and identifying layers.")
-                .defineInRange("essentialOnlyBelowPixels", 1_500.0, 0.0, 1_000_000.0);
+                .defineInRange("essentialOnlyBelowPixels", 400.0, 0.0, 1_000_000.0);
 
         REDUCED_BELOW_PIXELS = builder
                 .comment("Below this area, drop known cosmetic layers. Above it, render everything.")
-                .defineInRange("reducedBelowPixels", 6_000.0, 0.0, 1_000_000.0);
+                .defineInRange("reducedBelowPixels", 1_200.0, 0.0, 1_000_000.0);
 
         ALWAYS_RENDER_LAYER_KEYWORDS = builder
                 .comment("Case-insensitive class-name fragments for layers which must survive the essential tier.")
