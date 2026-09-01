@@ -91,8 +91,7 @@ public final class ClientTelemetryHud {
         Font font = minecraft.font;
         String profileSummary;
         if (AbBenchmarkSession.isActive()) {
-            String phase = AbBenchmarkSession.isOptimizationEnabled() ? "ON" : "OFF";
-            profileSummary = "A/B benchmark: budget " + phase + " | "
+            profileSummary = "A/B benchmark (ABBA): "
                     + AbBenchmarkSession.remainingSeconds() + " s remaining";
         } else if (TimedProfileSession.isActive()) {
             profileSummary = "Timed profile: " + TimedProfileSession.remainingSeconds() + " s remaining";

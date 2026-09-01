@@ -16,7 +16,7 @@ The first implementation adds screen-space layer budgeting for living entities:
 - adds an optional compact telemetry HUD with rendered/skipped counts and sampled timings for expensive layer classes. Bind its toggle under Controls -> Seaborgium.
 - retains per-layer cost models and estimates saved CPU time per frame instead of treating every skipped call as equally valuable.
 - provides `/seaborgium profile 60` for a bounded in-game test. It writes FPS, layer counts, sampled costs and estimated savings to `seaborgium-reports` in the game directory. Use `/seaborgium profile stop` to save a partial run early.
-- provides `/seaborgium benchmark 60` for an alternating five-second OFF/ON comparison using actual frame intervals, average FPS, 1% low and frametime percentiles. Keep the same camera view during the test. Use `/seaborgium benchmark stop` to save early.
+- provides `/seaborgium benchmark 60` for a frame-matched OFF-ON-ON-OFF (ABBA) comparison using actual frame intervals, average FPS, 1% low and frametime percentiles. ABBA reduces scene drift during both fixed-camera and normal-gameplay tests. Use `/seaborgium benchmark stop` to save early.
 - caches projected entity size for the duration of a frame instead of recalculating it separately for every render layer.
 
 This is an early alpha. Defaults are intentionally conservative and need profiling in real modpacks before a public release.

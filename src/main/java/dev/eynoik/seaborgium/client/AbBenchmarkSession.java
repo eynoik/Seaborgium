@@ -21,7 +21,9 @@ import java.util.Map;
 
 /** Alternates the layer budget off/on and compares real client frame intervals. */
 public final class AbBenchmarkSession {
-    private static final long PHASE_NANOS = 5_000_000_000L;
+    // ABBA cancels much of the linear scene drift while avoiding a permanent
+    // odd/even-frame bias: OFF, ON, ON, OFF, then repeat.
+    private static final boolean[] FRAME_PATTERN = {false, true, true, false};
     private static final long INVALID_FRAME_NANOS = 2_000_000_000L;
     private static final DateTimeFormatter FILE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
     private static Session active;
@@ -46,9 +48,9 @@ public final class AbBenchmarkSession {
         }
 
         long now = System.nanoTime();
-        active = new Session(seconds, now, now + seconds * 1_000_000_000L, now + PHASE_NANOS);
+        active = new Session(seconds, now, now + seconds * 1_000_000_000L);
         LayerBudget.setBenchmarkEnabledOverride(false);
-        message("Seaborgium: A/B benchmark started. Keep the same view; optimization begins OFF.", 0xFF55FF55);
+        message("Seaborgium: frame-matched A/B benchmark started (OFF-ON-ON-OFF).", 0xFF55FF55);
         return true;
     }
 
@@ -133,14 +135,13 @@ public final class AbBenchmarkSession {
             return;
         }
 
-        if (now >= session.phaseDeadlineNanos) {
-            session.optimizationEnabled = !session.optimizationEnabled;
+        session.patternIndex = (session.patternIndex + 1) % FRAME_PATTERN.length;
+        boolean nextFrameEnabled = FRAME_PATTERN[session.patternIndex];
+        if (nextFrameEnabled != session.optimizationEnabled) {
             session.phaseSwitches++;
-            do {
-                session.phaseDeadlineNanos += PHASE_NANOS;
-            } while (now >= session.phaseDeadlineNanos);
-            LayerBudget.setBenchmarkEnabledOverride(session.optimizationEnabled);
         }
+        session.optimizationEnabled = nextFrameEnabled;
+        LayerBudget.setBenchmarkEnabledOverride(nextFrameEnabled);
     }
 
     private static void finish(String status) {
@@ -171,8 +172,8 @@ public final class AbBenchmarkSession {
                 .append("Status: ").append(status).append('\n')
                 .append(String.format(Locale.ROOT, "Requested duration: %d s%n", session.requestedSeconds))
                 .append(String.format(Locale.ROOT, "Measured duration: %.3f s%n", measuredSeconds))
-                .append(String.format(Locale.ROOT, "Phase length: %.1f s%n", PHASE_NANOS / 1_000_000_000.0))
-                .append(String.format(Locale.ROOT, "Phase switches: %d%n", session.phaseSwitches))
+                .append("Frame pattern: OFF, ON, ON, OFF (ABBA)\n")
+                .append(String.format(Locale.ROOT, "Mode switches: %d%n", session.phaseSwitches))
                 .append('\n')
                 .append("Actual frame-time comparison\n")
                 .append("----------------------------\n")
@@ -228,8 +229,9 @@ public final class AbBenchmarkSession {
         report.append('\n')
                 .append("Notes\n")
                 .append("-----\n")
-                .append("The benchmark alternates OFF/ON every five seconds to reduce scene drift.\n")
-                .append("For the cleanest comparison, stand still and keep the same camera view for the whole run.\n")
+                .append("The benchmark uses an OFF-ON-ON-OFF frame pattern to compare adjacent render workloads.\n")
+                .append("ABBA reduces linear scene drift and odd/even-frame bias, including during normal movement.\n")
+                .append("A fixed camera remains the cleanest test; normal gameplay is useful as a second test.\n")
                 .append("FPS caps, VSync, chunk generation, menus and camera movement can hide or distort the result.\n")
                 .append("The existing sampled layer profiler remains active during both phases (1 in 64 rendered calls).\n")
                 .append("The original enabled config value is restored automatically when the benchmark ends.\n");
@@ -286,18 +288,17 @@ public final class AbBenchmarkSession {
         private final int requestedSeconds;
         private final long startedNanos;
         private final long deadlineNanos;
-        private long phaseDeadlineNanos;
         private long lastFrameNanos;
         private boolean optimizationEnabled;
+        private int patternIndex;
         private int phaseSwitches;
         private final PhaseData off = new PhaseData();
         private final PhaseData on = new PhaseData();
 
-        private Session(int requestedSeconds, long startedNanos, long deadlineNanos, long phaseDeadlineNanos) {
+        private Session(int requestedSeconds, long startedNanos, long deadlineNanos) {
             this.requestedSeconds = requestedSeconds;
             this.startedNanos = startedNanos;
             this.deadlineNanos = deadlineNanos;
-            this.phaseDeadlineNanos = phaseDeadlineNanos;
         }
 
         private PhaseData currentPhase() {
