@@ -8,6 +8,7 @@ public final class SeaborgiumConfig {
     public static final ModConfigSpec SPEC;
 
     public static final ModConfigSpec.BooleanValue ENABLED;
+    public static final ModConfigSpec.BooleanValue DEBUG_TELEMETRY;
     public static final ModConfigSpec.DoubleValue BASE_ONLY_BELOW_PIXELS;
     public static final ModConfigSpec.DoubleValue ESSENTIAL_ONLY_BELOW_PIXELS;
     public static final ModConfigSpec.DoubleValue REDUCED_BELOW_PIXELS;
@@ -23,6 +24,10 @@ public final class SeaborgiumConfig {
         ENABLED = builder
                 .comment("Master switch. The base entity model is never removed.")
                 .define("enabled", true);
+
+        DEBUG_TELEMETRY = builder
+                .comment("Collect lightweight layer counters and sampled timings for the F3 debug screen.")
+                .define("debugTelemetry", true);
 
         BASE_ONLY_BELOW_PIXELS = builder
                 .comment("Below this area, render only the base model.")
