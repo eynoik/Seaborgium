@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.eynoik.asyncsablefix.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "ParallelProcessorMixin",
+    "SableLevelAcceleratorMixin",
+    "SableSubLevelCollisionMixin",
+    "LevelCollisionNoWaitMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
