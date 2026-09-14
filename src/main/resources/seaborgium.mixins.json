@@ -6,7 +6,8 @@
   "client": [
     "LivingEntityRendererMixin",
     "FactoryPanelBlockEntityMixin",
-    "FactoryPanelBehaviourMixin",
+    "SmartBlockEntityTickerMixin",
+    "LevelBlockEntityTickMixin",
     "LevelRendererMixin"
   ],
   "injectors": {
