@@ -82,6 +82,7 @@ public final class ClientTelemetryHud {
         }
 
         LayerProfiler.Snapshot snapshot = LayerProfiler.snapshot();
+        WorldRenderProfiler.Snapshot worldSnapshot = WorldRenderProfiler.snapshot();
         String summary = String.format(
                 Locale.ROOT,
                 "Seaborgium: -%d/%d layers (%.1f%%)",
@@ -91,6 +92,7 @@ public final class ClientTelemetryHud {
         );
 
         String timingSummary = formatTimingSummary(snapshot.expensiveLayers());
+        String worldSummary = formatWorldRenderSummary(worldSnapshot.layers());
         String savedSummary = String.format(
                 Locale.ROOT,
                 "Estimated CPU saved: %.3f ms/frame (%.0f%% modeled)",
@@ -109,19 +111,21 @@ public final class ClientTelemetryHud {
             profileSummary = "";
         }
         int width = Math.max(font.width(summary), Math.max(font.width(savedSummary), font.width(timingSummary)));
+        width = Math.max(width, font.width(worldSummary));
         if (!profileSummary.isEmpty()) {
             width = Math.max(width, font.width(profileSummary));
         }
         int x = graphics.guiWidth() - width - 6;
         int y = 6;
 
-        int bottom = profileSummary.isEmpty() ? y + 29 : y + 39;
+        int bottom = profileSummary.isEmpty() ? y + 39 : y + 49;
         graphics.fill(x - 3, y - 3, graphics.guiWidth() - 3, bottom, 0x90000000);
         graphics.drawString(font, summary, x, y, 0xFFE0E0E0, true);
         graphics.drawString(font, savedSummary, x, y + 10, 0xFFB8D8B8, true);
         graphics.drawString(font, timingSummary, x, y + 20, 0xFFAAAAAA, true);
+        graphics.drawString(font, worldSummary, x, y + 30, 0xFF9FC7E8, true);
         if (!profileSummary.isEmpty()) {
-            graphics.drawString(font, profileSummary, x, y + 30, 0xFFFFD070, true);
+            graphics.drawString(font, profileSummary, x, y + 40, 0xFFFFD070, true);
         }
     }
 
@@ -140,6 +144,28 @@ public final class ClientTelemetryHud {
             text.append(timing.name())
                     .append(' ')
                     .append(String.format(Locale.ROOT, "%.1fus", timing.averageMicros()));
+        }
+        return text.toString();
+    }
+
+    private static String formatWorldRenderSummary(List<WorldRenderProfiler.LayerTiming> timings) {
+        if (!SeaborgiumConfig.WORLD_RENDER_TELEMETRY.get()) {
+            return "Terrain: telemetry disabled";
+        }
+        if (timings.isEmpty()) {
+            return "Terrain: collecting layer timings...";
+        }
+
+        StringBuilder text = new StringBuilder("Terrain: ");
+        int shown = Math.min(3, timings.size());
+        for (int index = 0; index < shown; index++) {
+            if (index > 0) {
+                text.append(" | ");
+            }
+            WorldRenderProfiler.LayerTiming timing = timings.get(index);
+            text.append(timing.name())
+                    .append(' ')
+                    .append(String.format(Locale.ROOT, "%.2fms", timing.averageMillis()));
         }
         return text.toString();
     }
