@@ -15,6 +15,10 @@ public final class SeaborgiumConfig {
     public static final ModConfigSpec.ConfigValue<List<? extends String>> ALWAYS_RENDER_LAYER_KEYWORDS;
     public static final ModConfigSpec.ConfigValue<List<? extends String>> COSMETIC_LAYER_KEYWORDS;
 
+    public static final ModConfigSpec.BooleanValue FACTORY_PANEL_OPTIMIZATIONS;
+    public static final ModConfigSpec.DoubleValue FACTORY_PANEL_FILTER_ITEM_DISTANCE;
+    public static final ModConfigSpec.BooleanValue WORLD_RENDER_TELEMETRY;
+
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
 
@@ -54,6 +58,28 @@ public final class SeaborgiumConfig {
                         List.of("cape", "elytra", "spinattack", "slimeouter", "deadmau5"),
                         () -> "layer",
                         value -> value instanceof String);
+
+        builder.pop();
+
+        builder.comment("Optional client optimizations for Create Factory Panels. Create remains an optional dependency.")
+                .push("create_factory_panels");
+
+        FACTORY_PANEL_OPTIMIZATIONS = builder
+                .comment("Use tighter Factory Panel render bounds and a distance LOD for filter item icons.")
+                .define("enabled", true);
+
+        FACTORY_PANEL_FILTER_ITEM_DISTANCE = builder
+                .comment("Maximum distance in blocks for Factory Panel filter item icons. Panel paths and bulbs are unaffected.")
+                .defineInRange("filterItemRenderDistance", 40.0, 8.0, 64.0);
+
+        builder.pop();
+
+        builder.comment("Terrain/chunk rendering telemetry used to choose safe optimization targets.")
+                .push("world_rendering");
+
+        WORLD_RENDER_TELEMETRY = builder
+                .comment("Split LevelRenderer.renderSectionLayer timing by solid/cutout/translucent render type when telemetry is active.")
+                .define("telemetry", true);
 
         builder.pop();
         SPEC = builder.build();
