@@ -6,6 +6,7 @@ import net.minecraft.client.renderer.RenderType;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -20,6 +21,7 @@ import java.util.Map;
 public final class WorldRenderProfiler {
     private static final long WINDOW_NANOS = 1_000_000_000L;
     private static final Map<String, MutableTiming> TIMINGS = new HashMap<>();
+    private static final Map<RenderType, String> NAME_CACHE = new IdentityHashMap<>();
 
     private static long windowStarted = System.nanoTime();
     private static Snapshot latest = Snapshot.EMPTY;
@@ -64,6 +66,17 @@ public final class WorldRenderProfiler {
     }
 
     private static String nameOf(RenderType renderType) {
+        String cached = NAME_CACHE.get(renderType);
+        if (cached != null) {
+            return cached;
+        }
+
+        String name = computeName(renderType);
+        NAME_CACHE.put(renderType, name);
+        return name;
+    }
+
+    private static String computeName(RenderType renderType) {
         if (renderType == RenderType.solid()) {
             return "solid";
         }
@@ -79,7 +92,37 @@ public final class WorldRenderProfiler {
         if (renderType == RenderType.tripwire()) {
             return "tripwire";
         }
-        return renderType.toString();
+
+        // Veil/Iris can pass wrapped/dynamic RenderType instances instead of the
+        // vanilla singletons above. Their toString starts with e.g.
+        // "RenderType[solid:CompositeState[...]". Extract only the stable short
+        // name so the HUD never prints the complete render-state description.
+        String text = renderType.toString();
+        int start = text.indexOf('[');
+        start = start >= 0 ? start + 1 : 0;
+
+        int colon = text.indexOf(':', start);
+        int comma = text.indexOf(',', start);
+        int bracket = text.indexOf(']', start);
+        int end = text.length();
+        if (colon >= start) {
+            end = Math.min(end, colon);
+        }
+        if (comma >= start) {
+            end = Math.min(end, comma);
+        }
+        if (bracket >= start) {
+            end = Math.min(end, bracket);
+        }
+
+        String candidate = text.substring(start, end).trim();
+        if (candidate.isEmpty()) {
+            candidate = renderType.getClass().getSimpleName();
+        }
+        if (candidate.length() > 32) {
+            candidate = candidate.substring(0, 29) + "...";
+        }
+        return candidate;
     }
 
     private static void rotateIfNeeded(long now) {
@@ -97,6 +140,9 @@ public final class WorldRenderProfiler {
 
         latest = new Snapshot(duration, List.copyOf(timings));
         TIMINGS.clear();
+        // Prevent an unbounded cache if a renderer creates temporary RenderType
+        // objects. This still means toString is paid at most once per type/window.
+        NAME_CACHE.clear();
         windowStarted = now;
     }
 
