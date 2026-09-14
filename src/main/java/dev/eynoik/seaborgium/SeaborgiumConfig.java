@@ -15,6 +15,12 @@ public final class SeaborgiumConfig {
     public static final ModConfigSpec.ConfigValue<List<? extends String>> ALWAYS_RENDER_LAYER_KEYWORDS;
     public static final ModConfigSpec.ConfigValue<List<? extends String>> COSMETIC_LAYER_KEYWORDS;
 
+    public static final ModConfigSpec.BooleanValue FACTORY_PANEL_OPTIMIZATIONS;
+    public static final ModConfigSpec.BooleanValue ASYNC_CREATE_BLOCK_ENTITIES;
+    public static final ModConfigSpec.IntValue ASYNC_CREATE_BLOCK_ENTITY_THREADS;
+    public static final ModConfigSpec.IntValue ASYNC_CREATE_BLOCK_ENTITY_MIN_BATCH;
+    public static final ModConfigSpec.BooleanValue WORLD_RENDER_TELEMETRY;
+
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
 
@@ -54,6 +60,41 @@ public final class SeaborgiumConfig {
                         List.of("cape", "elytra", "spinattack", "slimeouter", "deadmau5"),
                         () -> "layer",
                         value -> value instanceof String);
+
+        builder.pop();
+
+        builder.comment("Optional client optimizations for Create Factory Panels. Create remains an optional dependency.")
+                .push("create_factory_panels");
+
+        FACTORY_PANEL_OPTIMIZATIONS = builder
+                .comment("Use tighter Factory Panel render bounds based on the actual connection endpoints.")
+                .define("enabled", true);
+
+        builder.pop();
+
+        builder.comment("Experimental client-side parallel ticking for Create SmartBlockEntity instances.")
+                .push("create_block_entities");
+
+        ASYNC_CREATE_BLOCK_ENTITIES = builder
+                .comment("Batch Create SmartBlockEntity ticks and run different chunks in parallel, with a barrier before leaving the block-entity tick phase.")
+                .define("async", true);
+
+        ASYNC_CREATE_BLOCK_ENTITY_THREADS = builder
+                .comment("Maximum number of Seaborgium workers used for Create block entity ticking.")
+                .defineInRange("threads", 3, 1, 8);
+
+        ASYNC_CREATE_BLOCK_ENTITY_MIN_BATCH = builder
+                .comment("Below this number of queued Create block entities, execute the batch synchronously to avoid thread scheduling overhead.")
+                .defineInRange("minBatch", 8, 1, 1024);
+
+        builder.pop();
+
+        builder.comment("Terrain/chunk rendering telemetry used to choose safe optimization targets.")
+                .push("world_rendering");
+
+        WORLD_RENDER_TELEMETRY = builder
+                .comment("Split LevelRenderer.renderSectionLayer timing by solid/cutout/translucent render type when telemetry is active.")
+                .define("telemetry", true);
 
         builder.pop();
         SPEC = builder.build();

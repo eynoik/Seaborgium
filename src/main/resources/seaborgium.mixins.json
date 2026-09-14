@@ -4,7 +4,11 @@
   "package": "dev.eynoik.seaborgium.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "LivingEntityRendererMixin"
+    "LivingEntityRendererMixin",
+    "FactoryPanelBlockEntityMixin",
+    "SmartBlockEntityTickerMixin",
+    "LevelBlockEntityTickMixin",
+    "LevelRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1
