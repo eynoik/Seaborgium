@@ -4,10 +4,10 @@ license="MIT"
 
 [[mods]]
 modId="asyncepicfightfix"
-version="0.1.0"
+version="0.1.1"
 displayName="Async Epic Fight Fix"
 authors="eynoik"
-description='''Compatibility guard for Async 0.2.x + Epic Fight 21.17.x and the server-side parts of common Epic Fight addons. Serializes only Epic Fight-patched or addon-runtime-marked entities instead of disabling Async globally.'''
+description='''Compatibility guard for Async 0.2.x + Epic Fight 21.17.x and the server-side parts of common Epic Fight addons. Serializes only Epic Fight-patched or addon-runtime-marked entities instead of disabling Async globally. Also ignores Epic Fight expired-effect callbacks when Async/NeoForge supplies a null MobEffectInstance.'''
 
 [[mixins]]
 config="asyncepicfightfix.mixins.json"
