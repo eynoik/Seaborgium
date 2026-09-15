@@ -4,7 +4,8 @@
   "package": "dev.eynoik.asyncepicfightfix.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "ParallelProcessorEpicFightMixin"
+    "ParallelProcessorEpicFightMixin",
+    "EpicFightNullEffectMixin"
   ],
   "injectors": {
     "defaultRequire": 1
