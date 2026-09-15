@@ -4,7 +4,7 @@ license="All Rights Reserved"
 
 [[mods]]
 modId="asyncsablefix"
-version="0.1.6.1"
+version="0.1.6.2"
 displayName="Async Sable Fix"
 authors="eynoik"
 description='''
@@ -13,6 +13,8 @@ Prevents Sable collision reads from generating unloaded chunks, caps pathologica
 keeps known non-thread-safe contraption/citizen entities synchronous, and makes Async-worker collision
 chunk lookups non-blocking without modifying ServerChunkCache (avoiding a Sable mixin conflict).
 0.1.6.1 is the startup-safe rebuild of 0.1.6; collision/cache logic is unchanged from 0.1.6.
+0.1.6.2 additionally protects AttributeMap dirty sync/update sets from concurrent Async entity ticks by
+serializing dirty-set mutation and handing vanilla snapshot sets instead of live Lithium ReferenceOpenHashSet instances.
 '''
 
 [[mixins]]
