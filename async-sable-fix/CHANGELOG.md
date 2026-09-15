@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.6.1
+
+- Startup hotfix for the 0.1.6 binary.
+- Corrected class-level Mixin annotation retention for the two classes rebuilt in 0.1.6 (`SableLevelAcceleratorMixin` and `SableSubLevelCollisionMixin`).
+- No collision/cache behavior changes relative to 0.1.6.
+- All 0.1.5 and earlier protections remain intact.
+
 ## 0.1.6
 
 - Removed `Level#isLoaded` from the Sable LevelAccelerator hot path.
