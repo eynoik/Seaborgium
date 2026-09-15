@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.eynoik.asyncepicfightfix.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "ParallelProcessorEpicFightMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
