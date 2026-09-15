@@ -1,0 +1,50 @@
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+
+plugins {
+    id 'java'
+}
+
+group = 'dev.eynoik'
+version = '0.1.0'
+
+base {
+    archivesName = 'epicfight-moc-cqr-compat'
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+def generatedCapabilityDir = layout.buildDirectory.dir('generated/epicfight-capabilities')
+
+tasks.register('generateEpicFightCapabilities') {
+    inputs.file(layout.projectDirectory.file('mappings.json'))
+    outputs.dir(generatedCapabilityDir)
+
+    doLast {
+        def outputRoot = generatedCapabilityDir.get().asFile
+        delete(outputRoot)
+        def mappings = new JsonSlurper().parse(file('mappings.json'))
+
+        mappings.each { namespace, items ->
+            items.each { itemId, capabilityType ->
+                def out = new File(outputRoot, "data/${namespace}/capabilities/weapons/${itemId}.json")
+                out.parentFile.mkdirs()
+                out.text = JsonOutput.prettyPrint(JsonOutput.toJson([type: capabilityType])) + '\n'
+            }
+        }
+    }
+}
+
+sourceSets.main.resources.srcDir(generatedCapabilityDir)
+
+tasks.processResources {
+    dependsOn tasks.named('generateEpicFightCapabilities')
+}
+
+tasks.jar {
+    archiveVersion = project.version
+    manifest {
+        attributes('Implementation-Title': 'Epic Fight Mo Creatures + CQR Compat',
+                   'Implementation-Version': project.version)
+    }
+}
