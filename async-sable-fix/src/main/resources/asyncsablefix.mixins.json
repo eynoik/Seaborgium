@@ -7,7 +7,8 @@
     "ParallelProcessorMixin",
     "SableLevelAcceleratorMixin",
     "SableSubLevelCollisionMixin",
-    "LevelCollisionNoWaitMixin"
+    "LevelCollisionNoWaitMixin",
+    "AttributeMapThreadSafetyMixin"
   ],
   "injectors": {
     "defaultRequire": 1
