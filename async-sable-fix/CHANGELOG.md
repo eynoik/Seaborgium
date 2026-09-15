@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.6.3
+
+- Fixed the reproduced Async/Sable watchdog deadlock in entity tracking / line-of-sight.
+- The failing path was `ChunkMap$TrackedEntity.updatePlayer` -> Mowzie boss tracking -> `LivingEntity.hasLineOfSight` -> Sable `BlockGetter#clip` -> `Level#getFluidState` -> Async blocking `ServerChunkCache#getChunk`.
+- Added an Async-worker raycast scope guard around the Sable-overwritten `BlockGetter#clip` path.
+- During that scope, `Level#getBlockState` / `getFluidState` read directly from already-loaded chunks only.
+- Missing raycast chunks are treated as a solid boundary (`BEDROCK` + empty fluid), so LOS fails closed and the traversal stops instead of scheduling a synchronous chunk load while Async holds entity-tracker locks.
+- Preserved every 0.1.6.2 and earlier protection unchanged.
+
 ## 0.1.6.2
 
 - Fixed a new Async/Lithium entity-attribute race observed in `ClientboundUpdateAttributesPacket` / `ReferenceOpenHashSet$SetIterator.next`.
