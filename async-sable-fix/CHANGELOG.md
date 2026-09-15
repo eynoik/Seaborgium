@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.6.2
+
+- Fixed a new Async/Lithium entity-attribute race observed in `ClientboundUpdateAttributesPacket` / `ReferenceOpenHashSet$SetIterator.next`.
+- Added `AttributeMapThreadSafetyMixin`.
+- Serializes only `AttributeMap` dirty-set bookkeeping; entity ticking remains asynchronous.
+- `getAttributesToSync()` and `getAttributesToUpdate()` now return identity-preserving snapshots and clear the live dirty sets while holding the same per-AttributeMap lock.
+- Preserved every 0.1.6.1 Sable/chunk/collision protection unchanged.
+
 ## 0.1.6.1
 
 - Startup hotfix for the 0.1.6 binary.
