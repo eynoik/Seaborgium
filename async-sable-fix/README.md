@@ -1,26 +1,17 @@
-# Async Sable Fix 0.1.5
+# Async Sable Fix 0.1.6
 
 Compatibility mod for Minecraft 1.21.1 / NeoForge 21.1.x, Async 0.2.0 alpha and Sable 2.0.5.
 
-## 0.1.5
+## 0.1.6
 
-Fixes the watchdog hang where an Async entity worker enters Sable collision code at an unloaded chunk boundary while the server thread is processing player-distance tickets (often exposed when another player joins).
+Fixes the server-thread stalls seen after 0.1.5 in Sable `SubLevelEntityCollision`, especially with synchronous MineColonies visitors/citizens.
 
-0.1.4 used `ChunkSource#getChunkNow()` in `Level#getChunkForCollisions`. In Async 0.2.0 that call is only non-blocking when a visible `ChunkHolder` already exists. If it does not, vanilla falls through to `getChunk(..., FULL, false)`, which Async intercepts and waits on through the main-thread executor. During `callEntityTickBatch` this can deadlock with chunk-ticket processing / C2ME.
+- Replaces the per-block `Level#isLoaded` check in the `LevelAccelerator` guard with the existing loaded-only `LoadedChunkLookup`.
+- Caches the guard result per chunk for the lifetime of each Sable `LevelAccelerator`, including negative results. A collision scan touching hundreds of blocks in one chunk now performs one loaded-chunk lookup instead of hundreds.
+- Keeps the unloaded-chunk protection: missing chunks still return AIR/empty/null and Async writes into unloaded chunks are still refused.
+- Keeps the 0.1.5 non-blocking collision-chunk lookup that fixed the Async worker -> main-thread chunk-load deadlock.
+- Keeps the 4096.0 collision-volume guard from 0.1.4.
+- Adds a hard 1024 integer-block scan cap around Sable's `BlockPos.betweenClosed` call. Pathological long/thin bounds are treated like Sable's existing enormous-bounds bailout instead of iterating for seconds.
+- Create contraptions, MCA villagers and MineColonies citizens remain forced to synchronous entity ticking.
 
-0.1.5 never calls `getChunkNow()` or `getChunk()` from an Async worker collision lookup. It mirrors Async's own fast path: `getVisibleChunkIfPresent(ChunkPos)` -> `ChunkHolder#getChunkIfPresent(FULL)`. If no loaded chunk is immediately available it returns `null`; there is no blocking fallback.
-
-## Preserved 0.1.4 protections
-
-- Create `AbstractContraptionEntity`, MCA `VillagerEntityMCA`, and MineColonies `AbstractEntityCitizen` remain forced to synchronous entity ticking.
-- Sable `LevelAccelerator` still refuses reads/writes that would touch unloaded server chunks.
-- Sable `SubLevelEntityCollision` pathological volume guard remains capped at `4096.0` instead of `1.25E8`.
-- Async collision chunk lookup remains non-blocking; 0.1.5 replaces only the unsafe fallback behavior of the old implementation.
-
-## Build
-
-```bash
-gradle build
-```
-
-The tested binary is also committed under `releases/asyncsablefix-0.1.5.jar`.
+The main Seaborgium branch is not modified; this lives only on the `asyncsablefix-0.1.6` branch under `async-sable-fix/`.

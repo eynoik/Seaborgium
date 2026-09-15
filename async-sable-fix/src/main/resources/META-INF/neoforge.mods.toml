@@ -4,7 +4,7 @@ license="All Rights Reserved"
 
 [[mods]]
 modId="asyncsablefix"
-version="0.1.5"
+version="0.1.6"
 displayName="Async Sable Fix"
 authors="eynoik"
 description='''
@@ -12,7 +12,7 @@ Compatibility patch for Async 0.2.0 alpha and Sable 2.0.5 on Minecraft 1.21.1.
 Prevents Sable collision reads from generating unloaded chunks, caps pathological Sable collision scans,
 keeps known non-thread-safe contraption/citizen entities synchronous, and makes Async-worker collision
 chunk lookups non-blocking without modifying ServerChunkCache (avoiding a Sable mixin conflict).
-0.1.5 directly checks Async's visible ChunkHolder fast-path and never falls back to a blocking chunk load.
+0.1.6 keeps that loaded-only path, caches Sable unloaded-chunk guards per chunk, and rejects pathological collision block scans before they can stall the server thread.
 '''
 
 [[mixins]]

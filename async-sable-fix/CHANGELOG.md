@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.6
+
+- Removed `Level#isLoaded` from the Sable LevelAccelerator hot path.
+- Reused the 0.1.5 loaded-only ChunkHolder lookup and cached its result per chunk.
+- Added negative per-chunk caching for unloaded chunks.
+- Added a hard 1024-block cap for Sable `BlockPos.betweenClosed` collision scans.
+- Preserved all 0.1.5 and earlier compatibility protections.
+
 ## 0.1.5
 
 - Fixed Async/Sable server hang in `Level#getChunkForCollisions` when a collision lookup crosses into a chunk with no visible `ChunkHolder`.
