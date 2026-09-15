@@ -24,10 +24,13 @@ public abstract class SableLevelAcceleratorMixin {
     private Level level;
 
     @Unique
-    private long asyncsablefix$guardChunkPos = Long.MIN_VALUE;
+    private long asyncsablefix$guardChunkPos;
 
     @Unique
     private boolean asyncsablefix$guardChunkLoaded;
+
+    @Unique
+    private boolean asyncsablefix$guardInitialized;
 
     /**
      * Loaded-only guard cached per chunk for the lifetime of Sable's LevelAccelerator.
@@ -41,9 +44,10 @@ public abstract class SableLevelAcceleratorMixin {
         final int chunkZ = pos.getZ() >> 4;
         final long packed = ((long) chunkX & 0xffffffffL) | (((long) chunkZ & 0xffffffffL) << 32);
 
-        if (packed != asyncsablefix$guardChunkPos) {
+        if (!asyncsablefix$guardInitialized || packed != asyncsablefix$guardChunkPos) {
             asyncsablefix$guardChunkLoaded = LoadedChunkLookup.getLoadedChunk(level.getChunkSource(), chunkX, chunkZ) != null;
             asyncsablefix$guardChunkPos = packed;
+            asyncsablefix$guardInitialized = true;
         }
 
         return !asyncsablefix$guardChunkLoaded;
