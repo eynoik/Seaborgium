@@ -8,7 +8,9 @@
     "SableLevelAcceleratorMixin",
     "SableSubLevelCollisionMixin",
     "LevelCollisionNoWaitMixin",
-    "AttributeMapThreadSafetyMixin"
+    "AttributeMapThreadSafetyMixin",
+    "BlockGetterClipGuardMixin",
+    "LevelClipNoLoadMixin"
   ],
   "injectors": {
     "defaultRequire": 1
