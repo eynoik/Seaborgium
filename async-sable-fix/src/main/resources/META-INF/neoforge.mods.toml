@@ -4,7 +4,7 @@ license="All Rights Reserved"
 
 [[mods]]
 modId="asyncsablefix"
-version="0.1.6.2"
+version="0.1.6.3"
 displayName="Async Sable Fix"
 authors="eynoik"
 description='''
@@ -15,6 +15,8 @@ chunk lookups non-blocking without modifying ServerChunkCache (avoiding a Sable 
 0.1.6.1 is the startup-safe rebuild of 0.1.6; collision/cache logic is unchanged from 0.1.6.
 0.1.6.2 additionally protects AttributeMap dirty sync/update sets from concurrent Async entity ticks by
 serializing dirty-set mutation and handing vanilla snapshot sets instead of live Lithium ReferenceOpenHashSet instances.
+0.1.6.3 prevents Sable-overwritten block raycasts on Async workers from synchronously loading missing chunks;
+unloaded raycast boundaries are treated as solid so LOS checks fail closed instead of deadlocking the server.
 '''
 
 [[mixins]]
