@@ -9,7 +9,8 @@
     "SmartBlockEntityTickerMixin",
     "LevelBlockEntityTickMixin",
     "LevelRendererMixin",
-    "ItemStackTooltipCacheMixin"
+    "ItemStackTooltipCacheMixin",
+    "JeiIngredientFilterMixin"
   ],
   "injectors": {
     "defaultRequire": 1
