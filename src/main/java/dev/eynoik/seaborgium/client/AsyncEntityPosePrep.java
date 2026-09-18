@@ -6,11 +6,14 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.AABB;
 
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public final class AsyncEntityPosePrep {
-    private static final Map<Integer, Entry> CACHE = new ConcurrentHashMap<>();
+    private static final Map<UUID, Entry> CACHE = new ConcurrentHashMap<>();
+    private static final AtomicInteger REQUESTS = new AtomicInteger();
 
     private AsyncEntityPosePrep() {
     }
@@ -20,22 +23,22 @@ public final class AsyncEntityPosePrep {
             return null;
         }
 
-        int id = entity.getId();
+        UUID id = entity.getUUID();
         Entry entry = CACHE.computeIfAbsent(id, ignored -> new Entry());
-        RawPose raw = capture(entity);
+        entry.lastSeenTick = entity.tickCount;
 
+        RawPose raw = capture(entity);
         PreparedPose ready = entry.ready;
         if (ready == null || ready.sourceTick() != raw.tick()) {
             entry.request(raw);
         }
 
-        // One-tick-old immutable pose input is safe to consume for render preparation.
-        // The renderer still owns and mutates the actual model on the render thread.
-        return ready;
-    }
+        if ((REQUESTS.incrementAndGet() & 255) == 0) {
+            int now = entity.tickCount;
+            CACHE.entrySet().removeIf(e -> now - e.getValue().lastSeenTick > 200);
+        }
 
-    public static void forget(int entityId) {
-        CACHE.remove(entityId);
+        return ready;
     }
 
     private static RawPose capture(LivingEntity entity) {
@@ -144,6 +147,7 @@ public final class AsyncEntityPosePrep {
         private final AtomicBoolean inFlight = new AtomicBoolean();
         private volatile PreparedPose ready;
         private volatile int requestedTick = Integer.MIN_VALUE;
+        private volatile int lastSeenTick;
 
         private void request(RawPose raw) {
             if (requestedTick == raw.tick() || !inFlight.compareAndSet(false, true)) {
