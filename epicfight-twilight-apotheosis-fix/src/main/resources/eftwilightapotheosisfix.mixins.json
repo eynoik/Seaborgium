@@ -8,6 +8,9 @@
     "P1neroScanAimMixin",
     "TwilightWeaponAttributeCacheMixin"
   ],
+  "client": [
+    "EpicFightTooltipCacheMixin"
+  ],
   "injectors": {
     "defaultRequire": 1
   }
