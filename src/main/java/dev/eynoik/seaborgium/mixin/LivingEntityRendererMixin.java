@@ -1,6 +1,7 @@
 package dev.eynoik.seaborgium.mixin;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import dev.eynoik.seaborgium.client.AsyncEntityPosePrep;
 import dev.eynoik.seaborgium.client.LayerBudget;
 import dev.eynoik.seaborgium.client.LayerProfiler;
 import dev.eynoik.seaborgium.client.EntityRendererProfiler;
@@ -35,6 +36,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, M extend
             int packedLight,
             CallbackInfo callbackInfo
     ) {
+        AsyncEntityPosePrep.getOrRequest(entity);
         seaborgium$rendererSampleStart = EntityRendererProfiler.beginSample(getClass());
     }
 
@@ -80,8 +82,6 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, M extend
         LayerProfiler.recordDecision(layer.getClass(), shouldRender);
         if (shouldRender) {
             long sampleStart = LayerProfiler.beginSample();
-            // The cast is required because RenderLayer erases T to Entity in the
-            // target bytecode while the mapped Java declaration uses LivingEntity.
             try {
                 layer.render(
                         poseStack,
