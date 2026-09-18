@@ -2,54 +2,107 @@
 
 Seaborgium is a client-side optimization mod for Minecraft 1.21.1 on NeoForge.
 
-Its job is deliberately narrow: reduce CPU work which would otherwise land on Minecraft's render/client thread without trying to move unsafe OpenGL or world state operations to arbitrary worker threads.
+## 0.1.0-alpha.14
 
-## Current alpha
+Alpha.14 keeps every alpha.13 optimization and adds a shared worker pool plus four new multithreaded preparation paths.
 
-### 0.1.0-alpha.13
+### 1. Shared worker system
 
-Alpha.13 keeps the existing entity-layer, Factory Panel and async Create work and adds a client tooltip memoizer.
+All new async preparation uses one configurable Seaborgium worker pool instead of creating unrelated executors.
 
-Minecraft/NeoForge tooltip generation is normally requested from the UI every render frame. JEI and normal inventory screens ultimately call `ItemStack#getTooltipLines`, which fires the whole NeoForge item-tooltip event chain. In a large pack this can include Epic Fight, Apotheosis and other expensive listeners.
+Default:
+- up to 6 workers,
+- always leaves at least two logical processors outside the pool,
+- client config: `multithreading.workers`.
 
-Alpha.13 caches the finished tooltip for repeated requests during the **same client tick**.
+OpenGL, model mutation and final draw calls remain on the render thread.
 
-The cache key includes:
-- player and client tick,
-- item, stack count and data components,
-- advanced/creative tooltip mode,
-- Shift/Ctrl/Alt state,
-- current screen class.
+### 2. Living-entity pose input preparation
 
-The returned list is copied on cache hits so callers can safely alter their own list. The cache is bounded and configurable under `ui_tooltips`.
+Living entities are snapshotted on the render thread and workers prepare immutable:
+- motion deltas,
+- body/head yaw deltas,
+- pitch deltas,
+- bounding dimensions.
 
-This is intentionally memoization rather than "multithreaded GUI rendering": OpenGL draws, font/glyph atlas work and many mod tooltip callbacks are not thread-safe. Parallelizing them generically would trade frametime spikes for races/crashes. Pure or pack-specific preparation can still be moved to workers later when profiling identifies a safe target.
+The layer-budget projection path consumes completed snapshots from the previous/current tick where available.
 
-### Existing optimizations retained
+This deliberately does **not** mutate `EntityModel` or `ModelPart` off-thread. Those model instances are shared by the renderer and are not generically thread-safe.
 
-- screen-space layer budgeting for living entities;
-- optional compact telemetry HUD;
-- per-layer cost models and bounded profiling/benchmark commands;
-- projected entity size cached for a frame;
-- tighter Create Factory Panel render bounds;
-- experimental client-side Create SmartBlockEntity batching across chunk groups with a synchronization barrier;
-- terrain/world render telemetry.
+Config:
+- `multithreading.entityPosePrep=true`
 
-## Configuration
+### 3. JEI async filtering/search preparation
 
-The new tooltip section is enabled by default:
+When JEI invalidates its visible ingredient list after a text-filter change, Seaborgium can prepare the replacement list on the worker pool while the previous completed list remains visible for a few frames.
 
-- `ui_tooltips.memoize = true`
-- `ui_tooltips.cacheEntries = 512`
+The compatibility path uses JEI's own private search/filter/sort implementation and only moves its execution off the render thread. It falls back to JEI's normal path when:
+- the search index is being rebuilt,
+- sort indexes are dirty,
+- reflection compatibility does not match the installed JEI,
+- an async request fails.
 
-If a mod has a tooltip that intentionally changes multiple times inside a single 50 ms client tick, disable the option and report the item/mod so it can receive a narrower compatibility path.
+JEI already uses a parallel stream for the empty-filter path; alpha.14 mainly targets changed/non-empty searches which otherwise still contain synchronous preparation.
 
-## Planned work
+Config:
+- `multithreading.jeiFilter=true`
 
-1. Measure alpha.13 with a client Spark while hovering JEI/inventory items.
-2. Add cache hit/miss and render-thread frametime telemetry if the profile shows enough benefit.
-3. Continue profiling Factory Panels / world rendering / shader state churn.
-4. Keep parallel work limited to code proven thread-safe.
+### 4. Async tooltip stale-while-revalidate
+
+Alpha.13 memoized repeated tooltip requests inside one client tick.
+
+Alpha.14 additionally keeps the last completed tooltip briefly and returns it immediately while a copied `ItemStack` refreshes the next snapshot on a worker.
+
+Properties:
+- default max staleness: 1 client tick,
+- Shift/Ctrl/Alt, screen class, item/count/components and tooltip mode are part of the key,
+- worker refresh bypasses Seaborgium's own tooltip mixin to avoid recursion,
+- item classes which throw during off-thread tooltip generation are runtime-blacklisted and fall back to the normal render-thread path.
+
+Config:
+- `multithreading.tooltipPrefetch=true`
+- `multithreading.tooltipMaxStaleTicks=1`
+
+This is experimental because third-party tooltip callbacks are not guaranteed to be thread-safe.
+
+### 5. Weighted Create BlockEntity scheduler
+
+The existing Create SmartBlockEntity async path now uses the shared worker pool and measures per-class tick cost with an EWMA.
+
+Chunk groups are:
+1. assigned estimated cost from the block entities they contain,
+2. sorted heavy-first,
+3. greedily distributed to the currently lightest worker bin.
+
+Ticks inside one chunk preserve order. A barrier still completes before the block-entity phase ends. Classes that fail asynchronously are runtime-blacklisted and fall back to the render thread on following ticks.
+
+Configs:
+- `create_block_entities.async=true`
+- `create_block_entities.threads=3`
+- `create_block_entities.minBatch=8`
+
+## Retained work
+
+Alpha.14 retains:
+- screen-space living-entity layer budgeting,
+- layer and entity renderer telemetry,
+- static/play benchmark commands,
+- tighter Create Factory Panel render bounds,
+- Create client block-entity parallel ticking,
+- world render telemetry,
+- same-tick ItemStack tooltip memoization.
+
+## Testing
+
+For this build test the modules separately if a regression appears:
+
+1. JEI: type rapidly in the search field and switch filters/pages.
+2. Tooltips: hover modded weapons/items, hold Shift/Ctrl/Alt and verify dynamic text.
+3. Entities: move around MCA/Epic Fight/MineColonies entities and watch for animation/layer pop.
+4. Create: test pumps, tanks, crafters, arms and Factory Panels.
+5. Capture a client Spark with all modules enabled.
+
+If a particular subsystem causes issues, disable only its config flag instead of removing Seaborgium.
 
 ## Build
 
