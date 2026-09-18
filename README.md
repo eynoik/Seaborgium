@@ -1,31 +1,55 @@
 # Seaborgium
 
-Seaborgium is a client-side rendering optimization mod for Minecraft 1.21.1 on NeoForge.
+Seaborgium is a client-side optimization mod for Minecraft 1.21.1 on NeoForge.
 
-Its job is deliberately narrow: do not spend a large part of a frame rendering secondary entity layers that occupy only a tiny number of pixels on screen. Sodium, EntityCulling and ImmediatelyFast optimize different parts of the renderer; Seaborgium is intended to complement them.
+Its job is deliberately narrow: reduce CPU work which would otherwise land on Minecraft's render/client thread without trying to move unsafe OpenGL or world state operations to arbitrary worker threads.
 
 ## Current alpha
 
-The first implementation adds screen-space layer budgeting for living entities:
+### 0.1.0-alpha.13
 
-- estimates projected pixel area from entity bounds, camera distance, FOV and viewport height;
-- always keeps the base entity model;
-- keeps all layers on the camera entity;
-- progressively removes cosmetic, non-essential and finally all secondary layers as projected size shrinks;
-- exposes thresholds and layer class-name keywords in the NeoForge client config.
-- adds an optional compact telemetry HUD with rendered/skipped counts and sampled timings for expensive layer classes. Bind its toggle under Controls -> Seaborgium.
-- retains per-layer cost models and estimates saved CPU time per frame instead of treating every skipped call as equally valuable.
-- provides `/seaborgium profile 60` for a bounded in-game test. It writes FPS, layer counts, sampled costs and estimated savings to `seaborgium-reports` in the game directory. Use `/seaborgium profile stop` to save a partial run early.
-- provides `/seaborgium benchmark static 60` for fixed-camera 10-second OFF/ON blocks. The first two seconds of every block are excluded so CPU and GPU queues settle. `/seaborgium benchmark play 60` retains the frame-matched ABBA comparison for normal gameplay. Reports include actual FPS, 1% low, frametime percentiles and sampled whole-entity renderer cost. Use `/seaborgium benchmark stop` to save early.
-- caches projected entity size for the duration of a frame instead of recalculating it separately for every render layer.
+Alpha.13 keeps the existing entity-layer, Factory Panel and async Create work and adds a client tooltip memoizer.
 
-This is an early alpha. Defaults are intentionally conservative and need profiling in real modpacks before a public release.
+Minecraft/NeoForge tooltip generation is normally requested from the UI every render frame. JEI and normal inventory screens ultimately call `ItemStack#getTooltipLines`, which fires the whole NeoForge item-tooltip event chain. In a large pack this can include Epic Fight, Apotheosis and other expensive listeners.
+
+Alpha.13 caches the finished tooltip for repeated requests during the **same client tick**.
+
+The cache key includes:
+- player and client tick,
+- item, stack count and data components,
+- advanced/creative tooltip mode,
+- Shift/Ctrl/Alt state,
+- current screen class.
+
+The returned list is copied on cache hits so callers can safely alter their own list. The cache is bounded and configurable under `ui_tooltips`.
+
+This is intentionally memoization rather than "multithreaded GUI rendering": OpenGL draws, font/glyph atlas work and many mod tooltip callbacks are not thread-safe. Parallelizing them generically would trade frametime spikes for races/crashes. Pure or pack-specific preparation can still be moved to workers later when profiling identifies a safe target.
+
+### Existing optimizations retained
+
+- screen-space layer budgeting for living entities;
+- optional compact telemetry HUD;
+- per-layer cost models and bounded profiling/benchmark commands;
+- projected entity size cached for a frame;
+- tighter Create Factory Panel render bounds;
+- experimental client-side Create SmartBlockEntity batching across chunk groups with a synchronization barrier;
+- terrain/world render telemetry.
+
+## Configuration
+
+The new tooltip section is enabled by default:
+
+- `ui_tooltips.memoize = true`
+- `ui_tooltips.cacheEntries = 512`
+
+If a mod has a tooltip that intentionally changes multiple times inside a single 50 ms client tick, disable the option and report the item/mod so it can receive a narrower compatibility path.
 
 ## Planned work
 
-1. Dynamic frame-budget pressure instead of static thresholds alone.
-2. Shadow and glint budgeting.
-3. Compatibility tests with Sodium, ImmediatelyFast, EntityCulling, Iris/Sable, GeckoLib, Create/Flywheel and Accelerated Rendering.
+1. Measure alpha.13 with a client Spark while hovering JEI/inventory items.
+2. Add cache hit/miss and render-thread frametime telemetry if the profile shows enough benefit.
+3. Continue profiling Factory Panels / world rendering / shader state churn.
+4. Keep parallel work limited to code proven thread-safe.
 
 ## Build
 
