@@ -21,6 +21,9 @@ public final class SeaborgiumConfig {
     public static final ModConfigSpec.IntValue ASYNC_CREATE_BLOCK_ENTITY_MIN_BATCH;
     public static final ModConfigSpec.BooleanValue WORLD_RENDER_TELEMETRY;
 
+    public static final ModConfigSpec.BooleanValue UI_TOOLTIP_MEMOIZATION;
+    public static final ModConfigSpec.IntValue UI_TOOLTIP_CACHE_ENTRIES;
+
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
 
@@ -97,6 +100,20 @@ public final class SeaborgiumConfig {
                 .define("telemetry", true);
 
         builder.pop();
+
+        builder.comment("Client tooltip memoization for inventory and recipe-viewer UI.")
+                .push("ui_tooltips");
+
+        UI_TOOLTIP_MEMOIZATION = builder
+                .comment("Cache ItemStack tooltip generation for repeated requests within the same client tick. This avoids rerunning expensive tooltip event chains every render frame.")
+                .define("memoize", true);
+
+        UI_TOOLTIP_CACHE_ENTRIES = builder
+                .comment("Maximum number of one-tick tooltip snapshots kept in the bounded cache.")
+                .defineInRange("cacheEntries", 512, 32, 4096);
+
+        builder.pop();
+
         SPEC = builder.build();
     }
 
