@@ -24,8 +24,12 @@ public abstract class ItemStackTooltipCacheMixin {
             TooltipFlag flag,
             CallbackInfoReturnable<List<Component>> cir
     ) {
+        if (TooltipMemoizer.isWorkerBypass()) {
+            return;
+        }
+
         ItemStack stack = (ItemStack) (Object) this;
-        List<Component> cached = TooltipMemoizer.get(stack, player, flag);
+        List<Component> cached = TooltipMemoizer.get(stack, context, player, flag);
         if (cached != null) {
             cir.setReturnValue(cached);
         }
@@ -38,7 +42,11 @@ public abstract class ItemStackTooltipCacheMixin {
             TooltipFlag flag,
             CallbackInfoReturnable<List<Component>> cir
     ) {
+        if (TooltipMemoizer.isWorkerBypass()) {
+            return;
+        }
+
         ItemStack stack = (ItemStack) (Object) this;
-        TooltipMemoizer.put(stack, player, flag, cir.getReturnValue());
+        TooltipMemoizer.put(stack, context, player, flag, cir.getReturnValue());
     }
 }
