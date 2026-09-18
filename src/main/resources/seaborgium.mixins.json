@@ -8,7 +8,8 @@
     "FactoryPanelBlockEntityMixin",
     "SmartBlockEntityTickerMixin",
     "LevelBlockEntityTickMixin",
-    "LevelRendererMixin"
+    "LevelRendererMixin",
+    "ItemStackTooltipCacheMixin"
   ],
   "injectors": {
     "defaultRequire": 1
