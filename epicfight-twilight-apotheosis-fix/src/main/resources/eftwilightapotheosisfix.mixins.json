@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.eynoik.eftwilightapotheosisfix.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "BowComboApotheosisMixin",
+    "P1neroScanAimMixin",
+    "TwilightWeaponAttributeCacheMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
