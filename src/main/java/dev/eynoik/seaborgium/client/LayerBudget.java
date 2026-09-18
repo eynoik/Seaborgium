@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -14,10 +15,6 @@ import java.util.Locale;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
-/**
- * Makes a cheap screen-space estimate and decides whether a secondary entity
- * render layer is worth its cost. This class is render-thread only.
- */
 public final class LayerBudget {
     private static final double MIN_DISTANCE_SQUARED = 0.25;
     private static final Map<Entity, Double> FRAME_PIXEL_AREAS = new IdentityHashMap<>();
@@ -45,8 +42,6 @@ public final class LayerBudget {
             return true;
         }
 
-        // LivingEntityRenderer asks once per layer, often dozens of times for the
-        // same entity. Projection is invariant during a frame, so calculate it once.
         double pixelArea = FRAME_PIXEL_AREAS.computeIfAbsent(
                 entity,
                 ignored -> estimatePixelArea(minecraft, entity, partialTick)
@@ -85,16 +80,40 @@ public final class LayerBudget {
         Camera camera = minecraft.gameRenderer.getMainCamera();
         Vec3 cameraPosition = camera.getPosition();
 
-        AABB bounds = entity.getBoundingBox();
-        double width = Math.max(bounds.getXsize(), bounds.getZsize());
-        double height = bounds.getYsize();
+        double width;
+        double height;
+        double entityX;
+        double entityY;
+        double entityZ;
+
+        if (entity instanceof LivingEntity living) {
+            AsyncEntityPosePrep.PreparedPose prepared = AsyncEntityPosePrep.getOrRequest(living);
+            if (prepared != null && prepared.sourceTick() >= living.tickCount - 1) {
+                width = prepared.width();
+                height = prepared.height();
+                entityX = prepared.x(partialTick);
+                entityY = prepared.y(partialTick) + height * 0.5;
+                entityZ = prepared.z(partialTick);
+            } else {
+                AABB bounds = entity.getBoundingBox();
+                width = Math.max(bounds.getXsize(), bounds.getZsize());
+                height = bounds.getYsize();
+                entityX = Mth.lerp(partialTick, entity.xOld, entity.getX());
+                entityY = Mth.lerp(partialTick, entity.yOld, entity.getY()) + height * 0.5;
+                entityZ = Mth.lerp(partialTick, entity.zOld, entity.getZ());
+            }
+        } else {
+            AABB bounds = entity.getBoundingBox();
+            width = Math.max(bounds.getXsize(), bounds.getZsize());
+            height = bounds.getYsize();
+            entityX = Mth.lerp(partialTick, entity.xOld, entity.getX());
+            entityY = Mth.lerp(partialTick, entity.yOld, entity.getY()) + height * 0.5;
+            entityZ = Mth.lerp(partialTick, entity.zOld, entity.getZ());
+        }
+
         if (width <= 0.0 || height <= 0.0) {
             return 0.0;
         }
-
-        double entityX = Mth.lerp(partialTick, entity.xOld, entity.getX());
-        double entityY = Mth.lerp(partialTick, entity.yOld, entity.getY()) + height * 0.5;
-        double entityZ = Mth.lerp(partialTick, entity.zOld, entity.getZ());
 
         double distanceSquared = cameraPosition.distanceToSqr(entityX, entityY, entityZ);
         if (distanceSquared <= MIN_DISTANCE_SQUARED) {
