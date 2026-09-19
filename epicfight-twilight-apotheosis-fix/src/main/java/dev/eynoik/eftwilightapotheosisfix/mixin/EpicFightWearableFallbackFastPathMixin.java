@@ -23,7 +23,7 @@ public abstract class EpicFightWearableFallbackFastPathMixin {
     @Inject(
             method = "lambda$renderLayer$3(Lyesman/epicfight/api/client/model/SkinnedMesh;)Lnet/minecraft/resources/ResourceLocation;",
             at = @At("HEAD"),
-            require = 1,
+            require = 0,
             remap = false
     )
     private static void eftafix$avoidExpensiveNullPointerFallback(
