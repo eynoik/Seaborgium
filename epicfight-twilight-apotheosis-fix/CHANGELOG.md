@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.2
+
+- Fixed the client crash introduced by the 0.2.0 MineColonies civilian render gate.
+- Root cause: the compile-only `LivingEntityPatch<T>` stub declared an unbounded generic `getOriginal()`, so Java erased the injected call to `()Ljava/lang/Object;`. Epic Fight 21.17.3.1 actually inherits `getOriginal()` from `EntityPatch<T extends Entity>`, whose JVM descriptor returns `net.minecraft.world.entity.Entity`. The invalid call produced `NoSuchMethodError: LivingEntityPatch.getOriginal()Ljava/lang/Object;` on the first Epic Fight-rendered living entity.
+- The render gate now targets `LivingEntityPatch` by name and resolves `getOriginal()` through a cached reflective lookup. Any future API mismatch fails open and preserves Epic Fight rendering instead of crashing.
+- Removed `getOriginal()` from the unsafe compile-only stub so this descriptor bug cannot be accidentally reintroduced there.
+- This also addresses the later Iris `Already in a group` crash observed in the same session: the first exception interrupted entity rendering after Iris opened a batched entity group, and Not Enough Crashes continued rendering with the group left open.
+- Retains the 0.2.1 testing-version overlay suppression and all 0.2.0 MineColonies render/performance fixes.
+
+# Changelog
+
 ## 0.2.1
 
 - Disabled Epic Fight's client-side `VersionNotifier#render` overlay.
