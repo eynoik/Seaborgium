@@ -13,7 +13,8 @@
     "MineColoniesCitizenRenderGateMixin",
     "MineColoniesDynamicMeshVisibilityMixin",
     "MineColoniesDynamicRendererLayerInitMixin",
-    "EpicFightWearableFallbackFastPathMixin"
+    "EpicFightWearableFallbackFastPathMixin",
+    "EpicFightVersionNotifierMixin"
   ],
   "injectors": {
     "defaultRequire": 1
