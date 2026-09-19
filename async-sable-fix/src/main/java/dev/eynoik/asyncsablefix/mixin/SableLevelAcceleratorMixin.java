@@ -33,12 +33,15 @@ public abstract class SableLevelAcceleratorMixin {
     private boolean asyncsablefix$guardInitialized;
 
     /**
-     * Loaded-only guard cached per chunk for the lifetime of Sable's LevelAccelerator.
-     * Never calls Level#isLoaded, ChunkSource#getChunkNow or ChunkSource#getChunk.
+     * Loaded-only guard for Async workers only.
+     *
+     * Sable's normal server-thread LevelAccelerator path is intentionally left
+     * completely untouched. In particular, assembly/disassembly must be allowed to
+     * use Sable's own chunk access instead of receiving synthetic AIR/null results.
      */
     @Unique
     private boolean asyncsablefix$denyUnloaded(BlockPos pos) {
-        if (level.isClientSide()) return false;
+        if (!CompatUtil.isAsyncTickThread() || level.isClientSide()) return false;
 
         final int chunkX = pos.getX() >> 4;
         final int chunkZ = pos.getZ() >> 4;
@@ -70,6 +73,6 @@ public abstract class SableLevelAcceleratorMixin {
 
     @Inject(method = "setBlockFast(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)V", at = @At("HEAD"), cancellable = true, remap = false, require = 0)
     private void asyncsablefix$skipAsyncWriteIntoUnloadedChunk(BlockPos pos, BlockState state, CallbackInfo ci) {
-        if (CompatUtil.isAsyncTickThread() && asyncsablefix$denyUnloaded(pos)) ci.cancel();
+        if (asyncsablefix$denyUnloaded(pos)) ci.cancel();
     }
 }
