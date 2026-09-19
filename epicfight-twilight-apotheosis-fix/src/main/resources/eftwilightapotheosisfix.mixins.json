@@ -15,6 +15,7 @@
     "MineColoniesDynamicRendererLayerInitMixin",
     "EpicFightWearableFallbackFastPathMixin",
     "FirstPersonWearableFallbackFastPathMixin",
+    "EpicFightRenderEngineIrisShadowMixin",
     "EpicFightIrisShadowFallbackMixin",
     "EpicFightIrisPlayerShadowFallbackMixin",
     "EpicFightVersionNotifierMixin"
