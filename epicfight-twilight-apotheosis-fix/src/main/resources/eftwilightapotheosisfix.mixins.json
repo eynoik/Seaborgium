@@ -16,6 +16,7 @@
     "EpicFightWearableFallbackFastPathMixin",
     "FirstPersonWearableFallbackFastPathMixin",
     "EpicFightIrisShadowFallbackMixin",
+    "EpicFightIrisPlayerShadowFallbackMixin",
     "EpicFightVersionNotifierMixin"
   ],
   "injectors": {
