@@ -1,31 +1,29 @@
-# Async Sable Fix 0.1.6.3
+# Async Sable Fix 0.1.7
 
 Compatibility mod for Minecraft 1.21.1 / NeoForge 21.1.x, Async 0.2.0 alpha and Sable 2.0.5.
 
-## 0.1.6.3
+## 0.1.7
 
-Fixes a separate reproduced watchdog deadlock in entity tracking and line-of-sight. An Async natural-spawn worker could enter `ChunkMap$TrackedEntity.updatePlayer`, hold Async's tracker locks, then Mowzie's Mobs boss tracking called `LivingEntity.hasLineOfSight`. Sable's overwritten `BlockGetter#clip` read `Level#getFluidState` in an unloaded/projected chunk, which fell into Async's blocking `ServerChunkCache#getChunk` handoff. The server thread then blocked waiting for the same tracked-entity lock.
+0.1.7 changes the strategy for Sable sub-level collision. Async remains enabled for normal entity ticking; only Sable's collision critical section is serialized.
 
-The new raycast guard:
+The previous 0.1.6.x collision workaround lowered Sable's original huge-bounds guard from `500^3` to `4096` and capped `BlockPos.betweenClosed` scans at 1024 blocks. That could turn a transient/racy bad bound into a missing collision, which matches observed items falling through a stationary camper. It also modified `LevelAccelerator` reads on the normal server thread, which was unsafe for Sable/Simulated assembly and disassembly.
 
-- marks Sable/vanilla `BlockGetter#clip` only while it executes on an Async tick worker;
-- inside that scope, `Level#getBlockState` and `getFluidState` use the existing loaded-only ChunkHolder lookup;
-- loaded chunks are read directly without entering `ServerChunkCache#getChunk`;
-- a missing chunk is treated as a solid boundary (`BEDROCK` + empty fluid), so line-of-sight fails closed and traversal stops instead of generating/loading the chunk;
-- does not disable Async, Mowzie's Mobs, entity tracking, or normal main-thread raycasts.
+0.1.7 therefore:
 
-## 0.1.6.2
+- removes the custom 4096 collision-volume guard;
+- removes the custom 1024 integer-block scan cap;
+- restores Sable's original collision behavior and original large-bounds guard;
+- serializes `SubLevelEntityCollision.collide` across callers with a reentrant lock, preventing concurrent Async entity movement from overlapping inside Sable's shared mutable collision scratch path;
+- keeps the rest of each entity tick asynchronous;
+- restricts the loaded-only `LevelAccelerator` AIR/empty/null guard to Async worker threads only;
+- leaves normal server-thread Sable assembly/disassembly block access untouched.
 
-Protects the separate Async/Lithium race in entity attribute synchronization. Lithium 0.15.4 replaces `AttributeMap` dirty sets with fastutil `ReferenceOpenHashSet`; concurrent Async entity work can mutate those sets while vanilla networking is iterating them to build `ClientboundUpdateAttributesPacket`.
+All unrelated protections from 0.1.6.3 remain:
 
-`AttributeMapThreadSafetyMixin` keeps normal entity ticks asynchronous, serializes only dirty-set bookkeeping, returns snapshot sets, and clears the live dirty set under the same lock.
-
-All earlier protections remain unchanged:
-
-- no per-block `Level#isLoaded` calls in Sable `LevelAccelerator` collision scans;
-- loaded-only, per-chunk cached guards including negative results;
-- no blocking chunk-load fallback from Async collision workers;
-- hard 1024 integer-block scan cap plus the earlier 4096.0 volume guard;
-- Create contraptions, MCA villagers and MineColonies citizens remain forced to synchronous ticking.
+- Async-worker Sable/vanilla `BlockGetter#clip` scope guard for the reproduced Mowzie/entity-tracking LOS watchdog;
+- loaded-only `Level#getBlockState` / `getFluidState` handling inside that Async raycast scope, with missing chunks treated as a solid boundary;
+- non-blocking `Level#getChunkForCollisions` behavior on Async workers;
+- Async/Lithium `AttributeMap` dirty-set synchronization;
+- Create contraptions, MCA villagers and MineColonies citizens forced to synchronous ticking by the existing compatibility rules.
 
 The main Seaborgium branch remains untouched. Work lives on dedicated Async Sable Fix branches under `async-sable-fix/`.
