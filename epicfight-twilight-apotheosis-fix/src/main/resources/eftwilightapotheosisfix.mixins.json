@@ -9,7 +9,11 @@
     "TwilightWeaponAttributeCacheMixin"
   ],
   "client": [
-    "EpicFightTooltipCacheMixin"
+    "EpicFightTooltipCacheMixin",
+    "MineColoniesCitizenRenderGateMixin",
+    "MineColoniesDynamicMeshVisibilityMixin",
+    "MineColoniesDynamicRendererLayerInitMixin",
+    "EpicFightWearableFallbackFastPathMixin"
   ],
   "injectors": {
     "defaultRequire": 1
