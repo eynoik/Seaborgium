@@ -7,6 +7,6 @@ public final class EFTwilightApotheosisFix {
     public static final String MOD_ID = "eftwilightapotheosisfix";
 
     public EFTwilightApotheosisFix() {
-        System.out.println("[EFTwilightApotheosisFix] v0.2.2 Epic Fight + MineColonies render/performance compatibility enabled.");
+        System.out.println("[EFTwilightApotheosisFix] v0.2.3 Epic Fight + MineColonies + Iris shadow render/performance compatibility enabled.");
     }
 }
