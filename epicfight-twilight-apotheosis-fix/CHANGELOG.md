@@ -3,7 +3,7 @@
 ## 0.2.3
 
 - Added an Iris shadow-pass fast path based directly on the remaining client Spark hotspot.
-- While Iris is rendering the shadow map, `LivingEntityPatch#overrideRender()` now returns false, so Epic Fight's RenderEngine leaves the vanilla LivingEntityRenderer in control for that pass only. The normal visible pass still uses full Epic Fight rendering and animation.
+- While Iris is rendering the shadow map, Epic Fight's own `RenderEngine#epicfight$renderLivingPre` listener is short-circuited, leaving the vanilla LivingEntityRenderer in control for that pass only. `LivingEntityPatch#overrideRender()` shadow guards remain as a secondary fail-soft path. The normal visible pass still uses full Epic Fight rendering and animation.
 - This specifically removes the duplicate CPU `SkinnedMesh` work seen under `Iris ShadowRenderer.renderEntities` without implementing general entity-distance LOD; distance/animation throttling is deliberately left for Epic Fight FPS Optimizer testing later.
 - Player patches are covered separately because Epic Fight's AbstractClientPlayerPatch overrides LivingEntityPatch#overrideRender().
 - Iris integration is optional and reflection/MethodHandle based. If Iris is absent or changes its API, the optimization disables itself instead of crashing.
