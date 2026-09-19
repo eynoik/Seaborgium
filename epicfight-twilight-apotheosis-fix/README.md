@@ -2,56 +2,63 @@
 
 External compatibility patch for Minecraft 1.21.1 NeoForge.
 
-This project **does not replace, redistribute, or modify** TwilightForestEFCompat, Epic Fight, P1nero Epic Fight Bow, or Apotheosis. It is a separate runtime patch loaded alongside the original mods.
+This project **does not replace, redistribute, or modify** TwilightForestEFCompat, Epic Fight, P1nero Epic Fight Bow, Apotheosis, MineColonies, or Epic Fight X MineColonies Compat. It is a separate runtime patch loaded alongside the original mods.
 
-## 0.1.4
+## 0.2.0 — MineColonies render correctness + performance
 
-0.1.4 keeps every 0.1.3 fix and adds a client-side one-tick cache around Epic Fight's tooltip listener:
-
-`yesman.epicfight.client.events.engine.RenderEngine#epicfight$itemTooltip(ItemTooltipEvent)`
-
-The client Spark profile showed JEI repeatedly rebuilding the same tooltip through:
-
-`ItemStack#getTooltipLines -> ItemTooltipEvent -> Epic Fight -> LivingEntityPatch#getModifiedBaseDamage -> Twilight damage listeners`
-
-The cache:
-- stores the final Epic Fight-mutated tooltip for repeated requests inside the same client tick,
-- keys by player, client tick, item/count/components and the incoming tooltip contents,
-- never runs on the dedicated server because the mixin is client-only,
-- has a maximum visual staleness of one client tick (~50 ms at 20 TPS),
-- remains bounded to 256 entries.
-
-This avoids running the full Epic Fight damage/listener path multiple times per tick while hovering the same JEI/inventory item.
-
-## Retained 0.1.3 performance fix
-
-A bounded LRU cache remains around:
-
-`com.edwar.twilightmortisbows.TwilightWeaponAttributes#getDisplayedAttributeValue(ItemStack, Holder, double)`
-
-It preserves the original result, normalizes durability-only changes and invalidates naturally when affixes, enchantments or other item components change.
-
-## Retained 0.1.2 fixes
-
-- Apotheosis/Twilight projectile recursion marker bridge.
-- Ignore Apotheosis-generated arrows in Twilight `BowComboEvents#onArrowSpawn`.
-- Disable P1nero automatic nearest-scanned-target fallback.
-- Prevent competing P1nero yaw writes while keeping explicit Epic Fight lock-on behavior.
-
-## Target pack
+The 0.2.0 update is based on the target pack's client Spark profiles and exact runtime versions:
 
 - Minecraft 1.21.1
-- NeoForge 21.1.x
+- NeoForge 21.1.248
 - Epic Fight 21.17.3.1
-- TwilightForestEFCompat 1.1.6-Fix
-- P1nero Epic Fight Bow 21.16.1.0
-- Apotheosis 8.7.0
+- MineColonies 1.1.1374-1.21.1-snapshot
+- Epic Fight X MineColonies Compat 1.0.0
 
-## Test
+### 1. Stop rendering civilians as Epic Fight skinned mobs
 
-Install 0.1.4 on both client and server in place of **this patch's** 0.1.3 JAR. Keep all original gameplay mods installed.
+Epic Fight X MineColonies patches citizens/visitors as Epic Fight living entities. In a dense colony this forces farmers, builders, couriers, visitors and other civilians through `PatchedLivingEntityRenderer -> SkinnedMesh.drawPosed` every frame.
 
-1. Open JEI/inventory and hover the same affected weapon for 20-30 seconds.
-2. Compare frametime/FPS and record a client Spark.
-3. Verify attack damage/speed text still updates after changing the item, affix/enchantment or equipment.
-4. Re-test normal combat to confirm the 0.1.3 server-side TPS fix remains intact.
+0.2.0 intercepts Epic Fight's `LivingEntityPatch#overrideRender()` only for MineColonies citizens:
+
+- MineColonies jobs with `IJob#isGuard() == true` keep Epic Fight rendering.
+- Normal civilian jobs and visitors use the normal MineColonies renderer.
+- Raiders and mercenaries are different entity types and are untouched, so they retain Epic Fight rendering/combat visuals.
+
+This removes the expensive skinned-mesh path where it provides no gameplay value.
+
+### 2. Fix cached headless/partial MineColonies meshes
+
+The compatibility mod bakes shared MineColonies `HumanoidModel` objects into cached Epic Fight `SkinnedMesh` objects. Epic Fight's transformer only emits core parts that are visible when the bake occurs.
+
+0.2.0 temporarily forces the seven vanilla humanoid core parts visible during the compatibility mod's bake, then restores the exact previous visibility flags. This prevents transient armor/layer state from permanently caching a mesh without a head, hat, torso or limb.
+
+### 3. Restore omitted vanilla fallback layers
+
+`DynamicMeshPatchRenderer` relies on Epic Fight's `initLayerLast()` to wrap original vanilla layers that it does not patch directly. The compatibility registration path constructs the renderer without invoking that initializer.
+
+0.2.0 invokes it after the dynamic renderer's primary constructor, restoring fallback handling for layers such as MineColonies armor.
+
+### 4. Remove the armor-texture exception hot path
+
+Epic Fight 21.17.3.1 uses `ParseUtil.tryGetOr` for dynamically baked armor texture lookup. A null render-properties/custom-texture path falls back by throwing/catching a `NullPointerException`, which showed up in Spark as repeated `Throwable#fillInStackTrace` work on the Render Thread.
+
+0.2.0 replaces only that null case with a stackless singleton exception. Epic Fight's existing fallback supplier still chooses the final armor texture, so behavior stays the same while the expensive stack trace allocation disappears.
+
+## Retained 0.1.4 fixes
+
+- One-client-tick Epic Fight tooltip mutation cache.
+- Bounded Twilight displayed-attribute cache.
+- Apotheosis/Twilight projectile recursion marker bridge.
+- Ignore Apotheosis-generated arrows in Twilight bow combo processing.
+- Disable P1nero automatic nearest-scanned-target fallback.
+- Prevent competing P1nero bow yaw writes while keeping explicit Epic Fight lock-on.
+
+## Test plan
+
+Replace 0.1.4 with 0.2.0 on both client and server while keeping the original gameplay mods installed.
+
+1. Enter the same MineColonies location used for the previous 120-second Spark profile.
+2. Verify normal workers/visitors use their normal MineColonies models while guards/rangers, raiders and mercenaries still use Epic Fight.
+3. Verify previously headless MineColonies guard models and armor layers.
+4. Record the same 120-second client Spark: stationary camera first, then a separate profile while continuously rotating the camera.
+5. Compare `RenderLivingEvent.Pre`, `PatchedLivingEntityRenderer.render`, `SkinnedMesh.drawPosed`, `getVertexPosition`, `getVertexNormal`, `WearableItemLayer` and `Throwable.fillInStackTrace` against the old profile.
