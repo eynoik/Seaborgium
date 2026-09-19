@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.3
+
+- Added an Iris shadow-pass fast path based directly on the remaining client Spark hotspot.
+- While Iris is rendering the shadow map, `LivingEntityPatch#overrideRender()` now returns false, so Epic Fight's RenderEngine leaves the vanilla LivingEntityRenderer in control for that pass only. The normal visible pass still uses full Epic Fight rendering and animation.
+- This specifically removes the duplicate CPU `SkinnedMesh` work seen under `Iris ShadowRenderer.renderEntities` without implementing general entity-distance LOD; distance/animation throttling is deliberately left for Epic Fight FPS Optimizer testing later.
+- Iris integration is optional and reflection/MethodHandle based. If Iris is absent or changes its API, the optimization disables itself instead of crashing.
+- Added the same stackless armor-texture fallback used by the core Epic Fight WearableItemLayer to the optional `Epic Fight - First Person Model` addon's `FirstPersonWearableItemLayer`.
+- Retains all 0.2.2 MineColonies renderer fixes, testing-version overlay removal, tooltip caching and prior Twilight/Apotheosis/P1nero fixes.
+
+# Changelog
+
 ## 0.2.2
 
 - Fixed the client crash introduced by the 0.2.0 MineColonies civilian render gate.
