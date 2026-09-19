@@ -1,0 +1,39 @@
+modLoader="javafml"
+loaderVersion="[1,)"
+license="All Rights Reserved"
+
+[[mods]]
+modId="asyncdeadlockfix"
+version="0.1.0"
+displayName="Async Deadlock Fix"
+authors="eynoik"
+description='''
+Targeted server-side deadlock fix for Async 0.2.x on Minecraft 1.21.1.
+Keeps async entity spawning enabled. Replaces Async's executor with a compatible executor whose invokeAll()
+pumps queued ServerChunkCache work when the Minecraft server thread is waiting, breaking the measured cycle:
+server thread -> Async invokeAll -> Async spawn workers -> mainThreadProcessor chunk request -> server thread.
+'''
+
+[[mixins]]
+config="asyncdeadlockfix.mixins.json"
+
+[[dependencies.asyncdeadlockfix]]
+modId="neoforge"
+type="required"
+versionRange="[21.1,)"
+ordering="NONE"
+side="SERVER"
+
+[[dependencies.asyncdeadlockfix]]
+modId="minecraft"
+type="required"
+versionRange="[1.21.1,1.21.2)"
+ordering="NONE"
+side="SERVER"
+
+[[dependencies.asyncdeadlockfix]]
+modId="async"
+type="required"
+versionRange="[0.2.0,0.3.0)"
+ordering="AFTER"
+side="SERVER"
