@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1
+
+- Disabled Epic Fight's client-side `VersionNotifier#render` overlay.
+- Removes the persistent/temporary "Epic Fight is testing version." and version text without spoofing the Epic Fight version or changing networking, feature flags, datapacks, animations or compatibility checks.
+- Retains every 0.2.0 MineColonies render/performance fix and all earlier Twilight/Apotheosis/P1nero fixes.
+
+# Changelog
+
 ## 0.2.0
 
 - Added a client render gate for MineColonies citizens patched by Epic Fight X MineColonies Compat.
