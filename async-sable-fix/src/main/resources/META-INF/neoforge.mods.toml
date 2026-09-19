@@ -4,19 +4,17 @@ license="All Rights Reserved"
 
 [[mods]]
 modId="asyncsablefix"
-version="0.1.6.3"
+version="0.1.7"
 displayName="Async Sable Fix"
 authors="eynoik"
 description='''
 Compatibility patch for Async 0.2.0 alpha and Sable 2.0.5 on Minecraft 1.21.1.
-Prevents Sable collision reads from generating unloaded chunks, caps pathological Sable collision scans,
-keeps known non-thread-safe contraption/citizen entities synchronous, and makes Async-worker collision
-chunk lookups non-blocking without modifying ServerChunkCache (avoiding a Sable mixin conflict).
-0.1.6.1 is the startup-safe rebuild of 0.1.6; collision/cache logic is unchanged from 0.1.6.
-0.1.6.2 additionally protects AttributeMap dirty sync/update sets from concurrent Async entity ticks by
-serializing dirty-set mutation and handing vanilla snapshot sets instead of live Lithium ReferenceOpenHashSet instances.
-0.1.6.3 prevents Sable-overwritten block raycasts on Async workers from synchronously loading missing chunks;
-unloaded raycast boundaries are treated as solid so LOS checks fail closed instead of deadlocking the server.
+Keeps Async entity ticking enabled while isolating Sable's non-thread-safe sub-level collision critical section.
+Sable SubLevelEntityCollision calls are serialized instead of truncating collision scans, so normal Sable collision
+and tracking remain intact while concurrent Async entity movement cannot corrupt shared Sable collision scratch state.
+Loaded-only Sable LevelAccelerator guards now apply only on Async workers; normal server-thread assembly/disassembly
+uses Sable's original behavior. Existing chunk deadlock, raycast/LOS, AttributeMap, Create, MCA and MineColonies
+compatibility protections remain enabled.
 '''
 
 [[mixins]]
