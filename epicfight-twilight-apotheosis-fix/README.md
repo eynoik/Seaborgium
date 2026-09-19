@@ -4,9 +4,15 @@ External compatibility patch for Minecraft 1.21.1 NeoForge.
 
 This project **does not replace, redistribute, or modify** TwilightForestEFCompat, Epic Fight, P1nero Epic Fight Bow, Apotheosis, MineColonies, or Epic Fight X MineColonies Compat. It is a separate runtime patch loaded alongside the original mods.
 
-## 0.2.1 — UI cleanup
+## 0.2.2 — client crash fix
 
-0.2.1 additionally suppresses Epic Fight's client-side `VersionNotifier#render()`. Epic Fight 21.17.3.1 treats its four-part release string as a testing build and draws "Epic Fight is testing version." on screen. The patch only cancels that cosmetic renderer; the actual version string, networking and feature behavior remain untouched.
+0.2.2 fixes the `NoSuchMethodError` seen while rendering an Epic Fight entity with 0.2.0/0.2.2. The previous compile-only stub erased `LivingEntityPatch#getOriginal()` to an Object-returning JVM descriptor, while Epic Fight's real inherited method returns `Entity`. The civilian render gate now resolves that method reflectively with a cached lookup and fails open on mismatch.
+
+The later Iris `GraphTranslucencyRenderOrderManager: Already in a group` error from the same run is consistent with the original render exception interrupting Iris between `startGroup()` and `endGroup()` while Not Enough Crashes attempted to continue the client.
+
+## 0.2.2 — UI cleanup
+
+0.2.2 additionally suppresses Epic Fight's client-side `VersionNotifier#render()`. Epic Fight 21.17.3.1 treats its four-part release string as a testing build and draws "Epic Fight is testing version." on screen. The patch only cancels that cosmetic renderer; the actual version string, networking and feature behavior remain untouched.
 
 ## 0.2.0 — MineColonies render correctness + performance
 
@@ -59,7 +65,7 @@ Epic Fight 21.17.3.1 uses `ParseUtil.tryGetOr` for dynamically baked armor textu
 
 ## Test plan
 
-Replace 0.1.4/0.2.0 with 0.2.1 on both client and server while keeping the original gameplay mods installed.
+Replace 0.1.4/0.2.0 with 0.2.2 on both client and server while keeping the original gameplay mods installed.
 
 1. Enter the same MineColonies location used for the previous 120-second Spark profile.
 2. Verify normal workers/visitors use their normal MineColonies models while guards/rangers, raiders and mercenaries still use Epic Fight.
