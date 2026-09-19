@@ -7,6 +7,6 @@ public final class AsyncDeadlockFix {
     public static final String MOD_ID = "asyncdeadlockfix";
 
     public AsyncDeadlockFix() {
-        System.out.println("[AsyncDeadlockFix] Loaded: Async invokeAll/main-thread chunk pump guard enabled.");
+        System.out.println("[AsyncDeadlockFix] Loaded: Async 0.2.0 tickPool invokeAll/main-thread chunk pump guard enabled.");
     }
 }
