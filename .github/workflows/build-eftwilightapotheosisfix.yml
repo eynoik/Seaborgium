@@ -3,7 +3,7 @@ name: Build EpicFightTwilightApotheosisFix
 on:
   push:
     branches:
-      - epicfight-twilight-apotheosis-fix-0.1.4
+      - epicfight-twilight-apotheosis-fix-0.2.0
     paths:
       - 'epicfight-twilight-apotheosis-fix/**'
       - '.github/workflows/build-eftwilightapotheosisfix.yml'
@@ -28,10 +28,10 @@ jobs:
       - name: Build compatibility patch
         run: ./gradlew -p epicfight-twilight-apotheosis-fix clean build
 
-      - name: Verify patch does not package compile-only Epic Fight stub
+      - name: Verify compile-only Epic Fight stubs are not packaged
         run: |
           JAR="$(find epicfight-twilight-apotheosis-fix/build/libs -name '*.jar' ! -name '*sources*' | head -n 1)"
-          if unzip -l "$JAR" | grep -q 'yesman/epicfight/world/capabilities/entitypatch/LivingEntityPatch.class'; then
+          if unzip -l "$JAR" | grep -q 'yesman/epicfight/'; then
             echo "ERROR: compile-only Epic Fight stub leaked into runtime JAR"
             exit 1
           fi
@@ -39,6 +39,6 @@ jobs:
       - name: Upload built JAR
         uses: actions/upload-artifact@v4
         with:
-          name: EpicFightTwilightApotheosisFix-0.1.4
-          path: epicfight-twilight-apotheosis-fix/build/libs/EpicFightTwilightApotheosisFix-0.1.4.jar
+          name: EpicFightTwilightApotheosisFix-0.2.0
+          path: epicfight-twilight-apotheosis-fix/build/libs/EpicFightTwilightApotheosisFix-0.2.0.jar
           if-no-files-found: error
