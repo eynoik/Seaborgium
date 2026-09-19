@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.7
+
+- Reworked Sable collision compatibility after real vehicle testing exposed missing floor collision, broken seat/typewriter tracking, repeated `Enormous local sub-level collision bounds` spam and destructive disassembly symptoms on a stationary camper.
+- Removed the 0.1.6 custom `4096.0` collision-volume guard.
+- Removed the 0.1.6 hard `1024` `BlockPos.betweenClosed` scan cap.
+- Restored Sable 2.0.5's original collision scan and original `500^3` huge-bounds guard.
+- Serialized only `SubLevelEntityCollision.collide` with a reentrant critical-section lock. Async remains enabled for the rest of entity ticking.
+- This prevents multiple Async entity movement calls from overlapping inside Sable's shared mutable collision scratch path, which can corrupt local bounds and sub-level tracking.
+- Restricted `SableLevelAcceleratorMixin` loaded-only AIR/empty/null behavior to Async tick workers. Normal server-thread assembly/disassembly now uses unmodified Sable `LevelAccelerator` behavior.
+- Preserved the 0.1.6.3 raycast/LOS watchdog fix, 0.1.6.2 AttributeMap race fix, 0.1.5 non-blocking collision chunk lookup, and existing synchronous safety rules for Create contraptions, MCA villagers and MineColonies citizens.
+
 ## 0.1.6.3
 
 - Fixed the reproduced Async/Sable watchdog deadlock in entity tracking / line-of-sight.
