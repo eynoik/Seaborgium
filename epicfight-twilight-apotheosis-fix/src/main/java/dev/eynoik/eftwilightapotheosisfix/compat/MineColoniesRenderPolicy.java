@@ -9,8 +9,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Epic Fight rendering for actual guards. Raiders and mercenaries are separate entity types,
  * so this policy never catches them and they remain on Epic Fight.
  *
- * Reflection is intentional: MineColonies and epicfightxminecolonies stay optional compile-time
- * dependencies for this patch. Method lookups are cached per runtime class.
+ * Reflection is intentional: MineColonies, epicfightxminecolonies and Epic Fight stay optional
+ * compile-time dependencies for this patch. Runtime method lookups are cached per class.
  */
 public final class MineColoniesRenderPolicy {
     private static final String CITIZEN_CLASS = "com.minecolonies.api.entity.citizen.AbstractEntityCitizen";
@@ -18,6 +18,20 @@ public final class MineColoniesRenderPolicy {
     private static volatile Class<?> citizenBase;
     private static volatile boolean citizenLookupDone;
     private static final AtomicBoolean reflectionWarningPrinted = new AtomicBoolean();
+    private static final AtomicBoolean patchReflectionWarningPrinted = new AtomicBoolean();
+
+    /**
+     * Epic Fight 21.17.3.1 inherits getOriginal() from EntityPatch<T extends Entity>.
+     * The real JVM descriptor therefore returns net.minecraft.world.entity.Entity, not Object.
+     * Keeping this lookup reflective avoids baking an incorrect compile-only descriptor into our
+     * mixin bytecode and also keeps Epic Fight out of the compile-time dependency graph.
+     */
+    private static final ClassValue<Optional<Method>> GET_PATCH_ORIGINAL = new ClassValue<>() {
+        @Override
+        protected Optional<Method> computeValue(Class<?> type) {
+            return findPublicMethod(type, "getOriginal");
+        }
+    };
 
     private static final ClassValue<Optional<Method>> GET_JOB_HANDLER = new ClassValue<>() {
         @Override
@@ -41,6 +55,29 @@ public final class MineColoniesRenderPolicy {
     };
 
     private MineColoniesRenderPolicy() {
+    }
+
+    /**
+     * Safely resolves Epic Fight's underlying entity without linking against the method descriptor.
+     * Returns null on any API mismatch so the render gate fails open and Epic Fight keeps rendering.
+     */
+    public static Object getOriginalFromPatch(Object patch) {
+        if (patch == null) {
+            return null;
+        }
+
+        try {
+            Method getOriginal = GET_PATCH_ORIGINAL.get(patch.getClass()).orElse(null);
+            if (getOriginal == null) {
+                return null;
+            }
+            return getOriginal.invoke(patch);
+        } catch (ReflectiveOperationException | RuntimeException ex) {
+            if (patchReflectionWarningPrinted.compareAndSet(false, true)) {
+                System.err.println("[EFTwilightApotheosisFix] Epic Fight getOriginal lookup failed once; preserving Epic Fight renderer. " + ex);
+            }
+            return null;
+        }
     }
 
     /**
