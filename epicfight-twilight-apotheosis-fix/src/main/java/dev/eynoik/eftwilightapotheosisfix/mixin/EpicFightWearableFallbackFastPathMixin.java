@@ -5,14 +5,13 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import yesman.epicfight.api.client.model.Mesh;
 import yesman.epicfight.api.client.model.SkinnedMesh;
 
 /**
  * Epic Fight 21.17.3.1 intentionally uses ParseUtil.tryGetOr around armor customTexturePath lookup.
- * For dynamically baked meshes renderProperties/customTexturePath is commonly null, so the normal
- * fallback path allocates and fills a NullPointerException stack trace. Spark showed this happening
- * repeatedly on the Render Thread.
+ * Dynamically baked meshes commonly have null renderProperties, so the normal fallback path first
+ * creates a NullPointerException and fills its stack trace. Spark showed that exception work on the
+ * Render Thread.
  *
  * Throw a stackless singleton before the null dereference. ParseUtil still takes its existing
  * fallback supplier, preserving texture behavior while removing Throwable#fillInStackTrace cost.
@@ -31,8 +30,7 @@ public abstract class EpicFightWearableFallbackFastPathMixin {
             SkinnedMesh mesh,
             CallbackInfoReturnable<ResourceLocation> cir
     ) {
-        Mesh.RenderProperties properties = mesh.getRenderProperties();
-        if (properties == null || properties.customTexturePath() == null) {
+        if (mesh.getRenderProperties() == null) {
             throw EFTAFIX_FAST_FALLBACK;
         }
     }
