@@ -3,7 +3,7 @@ name: Build AsyncDeadlockFix
 on:
   push:
     branches:
-      - async-deadlock-fix-0.1.0
+      - async-deadlock-fix-0.1.1
     paths:
       - 'async-deadlock-fix/**'
       - '.github/workflows/build-asyncdeadlockfix.yml'
@@ -31,6 +31,6 @@ jobs:
       - name: Upload built JAR
         uses: actions/upload-artifact@v4
         with:
-          name: AsyncDeadlockFix-0.1.0
-          path: async-deadlock-fix/build/libs/AsyncDeadlockFix-0.1.0.jar
+          name: AsyncDeadlockFix-0.1.1
+          path: async-deadlock-fix/build/libs/AsyncDeadlockFix-0.1.1.jar
           if-no-files-found: error
