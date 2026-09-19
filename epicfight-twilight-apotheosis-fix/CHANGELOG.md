@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0
+
+- Added a client render gate for MineColonies citizens patched by Epic Fight X MineColonies Compat.
+- Non-combat citizens/visitors now keep MineColonies' vanilla renderer; only jobs whose MineColonies `IJob#isGuard()` is true stay on the Epic Fight skinned renderer. Raiders and mercenaries are separate entity types and remain fully Epic Fight-rendered.
+- Fixed dynamic MineColonies mesh baking so transient `HumanoidModel` visibility flags cannot permanently cache a headless/partial `SkinnedMesh`.
+- Fixed Epic Fight X MineColonies Compat's omitted `PatchedLivingEntityRenderer#initLayerLast()` call, restoring fallback handling for unpatched vanilla layers such as armor.
+- Replaced Epic Fight 21.17.3.1's repeated armor texture NullPointerException fallback with a stackless fast fallback while preserving the existing fallback texture lookup.
+- Targeted from client Spark profiles where Epic Fight consumed ~36% inclusive Render Thread time in the colony and `SkinnedMesh.drawPosed/getVertexPosition/getVertexNormal` dominated the added work.
+- Retains every 0.1.4 tooltip cache, Twilight displayed-attribute cache, projectile bridge, P1nero target and yaw fix.
+
 ## 0.1.4
 
 - Added a client-only one-tick cache around Epic Fight's `RenderEngine#epicfight$itemTooltip` mutation.
