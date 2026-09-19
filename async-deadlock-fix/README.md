@@ -1,3 +1,17 @@
+# AsyncDeadlockFix 0.1.1
+
+## 0.1.1 hotfix
+
+0.1.0 targeted the correct deadlock but used the field name from a later Async branch:
+`ParallelProcessor.executor`. The installed Async 0.2.0+alpha-1.21.1 actually exposes
+`ParallelProcessor.tickPool`. The 0.1.0 injection therefore threw from
+`setupThreadPool()` after the original pool had been created, terminating the Minecraft server
+thread. The subsequent watchdog report contained no `Server thread` at all and all 16
+`Async-Tick-Pool-Thread-*` workers were idle, which is consistent with that startup-thread failure.
+
+0.1.1 resolves `tickPool` first and `executor` only as a forward-compatible fallback. Installation
+errors now fail soft and leave Async's original pool alive instead of killing the server.
+
 # AsyncDeadlockFix 0.1.0
 
 Targeted fix for the server hang captured on 2026-09-19 with Async 0.2.0+alpha on NeoForge 1.21.1.
