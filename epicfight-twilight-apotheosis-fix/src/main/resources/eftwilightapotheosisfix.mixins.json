@@ -14,6 +14,8 @@
     "MineColoniesDynamicMeshVisibilityMixin",
     "MineColoniesDynamicRendererLayerInitMixin",
     "EpicFightWearableFallbackFastPathMixin",
+    "FirstPersonWearableFallbackFastPathMixin",
+    "EpicFightIrisShadowFallbackMixin",
     "EpicFightVersionNotifierMixin"
   ],
   "injectors": {
