@@ -21,7 +21,7 @@ public abstract class EpicFightVersionNotifierMixin {
             method = "render(Lnet/minecraft/client/gui/GuiGraphics;Z)V",
             at = @At("HEAD"),
             cancellable = true,
-            require = 1,
+            require = 0,
             remap = false
     )
     private void eftafix$hideTestingVersionOverlay(
