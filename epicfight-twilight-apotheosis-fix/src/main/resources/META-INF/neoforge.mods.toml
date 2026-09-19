@@ -4,10 +4,10 @@ license="MIT"
 
 [[mods]]
 modId="eftwilightapotheosisfix"
-version="0.1.4"
-displayName="Epic Fight Twilight Apotheosis Fix"
+version="0.2.0"
+displayName="Epic Fight Compatibility Fixes"
 authors="eynoik"
-description='''Targeted compatibility patch for Minecraft 1.21.1 NeoForge. Bridges Apotheosis and TwilightForestEFCompat projectile recursion markers, disables P1nero automatic target fallback, prevents competing bow yaw writes, caches Twilight displayed weapon attributes, and memoizes Epic Fight tooltip mutation once per client tick to avoid repeated render-thread damage recalculation in JEI/inventory tooltips.'''
+description='''Targeted compatibility/performance patch for Minecraft 1.21.1 NeoForge. Keeps the existing TwilightForestEFCompat, Apotheosis and P1nero fixes; additionally restores correct Epic Fight X MineColonies dynamic mesh/layer handling, keeps non-combat MineColonies civilians on the vanilla renderer, and removes an expensive Epic Fight armor-texture exception hot path seen in client Spark profiles.'''
 
 [[mixins]]
 config="eftwilightapotheosisfix.mixins.json"
@@ -52,4 +52,18 @@ modId="apotheosis"
 type="optional"
 versionRange="[8.7.0,9)"
 ordering="BEFORE"
+side="BOTH"
+
+[[dependencies.eftwilightapotheosisfix]]
+modId="minecolonies"
+type="optional"
+versionRange="[1,2)"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.eftwilightapotheosisfix]]
+modId="epicfightxminecolonies"
+type="optional"
+versionRange="[1,2)"
+ordering="AFTER"
 side="BOTH"
