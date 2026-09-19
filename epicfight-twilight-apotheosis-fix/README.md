@@ -1,3 +1,23 @@
+# Epic Fight Compatibility Fixes
+
+## 0.2.3 — Iris shadow-map fast path
+
+The target client Spark still showed a large remaining Epic Fight cost inside
+`net.irisshaders.iris.shadows.ShadowRenderer.renderEntities`. Shader packs render living entities
+again into a shadow map, causing Epic Fight's CPU `SkinnedMesh` path to be paid a second time.
+
+0.2.3 keeps full Epic Fight rendering in the visible/main pass, but during Iris's shadow-map pass
+returns `false` from `LivingEntityPatch#overrideRender()`. Epic Fight's own RenderEngine then does
+not replace/cancel the vanilla LivingEntityRenderer, so vanilla geometry casts the shadow instead of
+running the expensive Epic Fight skinned renderer again.
+
+This is intentionally not a general LOD system. Near/far animation throttling and distance-based
+renderer replacement are left for a later controlled test of Epic Fight FPS Optimizer.
+
+0.2.3 also adds a stackless null-render-properties fallback for the optional
+`Epic Fight - First Person Model` armor texture supplier, removing another exception-as-control-flow
+path visible in the client profile.
+
 # EpicFightTwilightApotheosisFix
 
 External compatibility patch for Minecraft 1.21.1 NeoForge.
