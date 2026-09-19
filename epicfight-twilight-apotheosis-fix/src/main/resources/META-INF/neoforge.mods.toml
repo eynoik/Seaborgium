@@ -4,10 +4,10 @@ license="MIT"
 
 [[mods]]
 modId="eftwilightapotheosisfix"
-version="0.2.2"
+version="0.2.3"
 displayName="Epic Fight Compatibility Fixes"
 authors="eynoik"
-description='''Targeted compatibility/performance/UI patch for Minecraft 1.21.1 NeoForge. Keeps the existing TwilightForestEFCompat, Apotheosis and P1nero fixes; additionally restores correct Epic Fight X MineColonies dynamic mesh/layer handling, keeps non-combat MineColonies civilians on the vanilla renderer, and removes an expensive Epic Fight armor-texture exception hot path seen in client Spark profiles.'''
+description='''Targeted compatibility/performance/UI patch for Minecraft 1.21.1 NeoForge. Keeps the existing TwilightForestEFCompat, Apotheosis and P1nero fixes; additionally restores correct Epic Fight X MineColonies dynamic mesh/layer handling, keeps non-combat MineColonies civilians on the vanilla renderer, removes expensive armor-texture exception hot paths, and sends Epic Fight entities through the vanilla renderer only during Iris shadow-map rendering to avoid duplicate CPU skinning.'''
 
 [[mixins]]
 config="eftwilightapotheosisfix.mixins.json"
