@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'dev.eynoik'
-version = '0.1.4'
+version = '0.2.0'
 
 base {
     archivesName = 'EpicFightTwilightApotheosisFix'
@@ -42,7 +42,7 @@ jar {
     manifest {
         attributes(
                 'MixinConfigs': 'eftwilightapotheosisfix.mixins.json',
-                'Implementation-Title': 'Epic Fight Twilight Apotheosis Fix',
+                'Implementation-Title': 'Epic Fight Compatibility Fixes',
                 'Implementation-Version': project.version,
                 'Created-By': 'OpenAI'
         )
