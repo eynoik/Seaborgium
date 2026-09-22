@@ -1,38 +1,35 @@
-# Seaborgium
+# Create Logistics Overrequest Fix
 
-Seaborgium is a client-side rendering optimization mod for Minecraft 1.21.1 on NeoForge.
+Small dedicated-server-only NeoForge mod for Minecraft 1.21.1 / Create 6.0.11.
 
-Its job is deliberately narrow: do not spend a large part of a frame rendering secondary entity layers that occupy only a tiny number of pixels on screen. Sodium, EntityCulling and ImmediatelyFast optimize different parts of the renderer; Seaborgium is intended to complement them.
+It backports the dedicated-server-relevant parts of Create PR #10496, which addresses Factory Gauge / Packager over-requesting (issues #9987 and #10486).
 
-## Current alpha
+## What it fixes
 
-The first implementation adds screen-space layer budgeting for living entities:
+1. **Transient missing Packager target inventory**
+   - Create can temporarily receive `null` from the Packager target inventory during block-entity updates.
+   - Vanilla Create 6.0.11 replaces its cached inventory summary with an empty summary in that situation.
+   - Factory Gauge can then think stock disappeared and issue another production request.
+   - This mod keeps the last valid cached summary while the target inventory is temporarily unavailable.
 
-- estimates projected pixel area from entity bounds, camera distance, FOV and viewport height;
-- always keeps the base entity model;
-- keeps all layers on the camera entity;
-- progressively removes cosmetic, non-essential and finally all secondary layers as projected size shrinks;
-- exposes thresholds and layer class-name keywords in the NeoForge client config.
-- adds an optional compact telemetry HUD with rendered/skipped counts and sampled timings for expensive layer classes. Bind its toggle under Controls -> Seaborgium.
-- retains per-layer cost models and estimates saved CPU time per frame instead of treating every skipped call as equally valuable.
-- provides `/seaborgium profile 60` for a bounded in-game test. It writes FPS, layer counts, sampled costs and estimated savings to `seaborgium-reports` in the game directory. Use `/seaborgium profile stop` to save a partial run early.
-- provides `/seaborgium benchmark static 60` for fixed-camera 10-second OFF/ON blocks. The first two seconds of every block are excluded so CPU and GPU queues settle. `/seaborgium benchmark play 60` retains the frame-matched ABBA comparison for normal gameplay. Reports include actual FPS, 1% low, frametime percentiles and sampled whole-entity renderer cost. Use `/seaborgium benchmark stop` to save early.
-- caches projected entity size for the duration of a frame instead of recalculating it separately for every render layer.
+2. **Mutable ItemStack keys in InventorySummary**
+   - Create can keep a live container `ItemStack` as a `BigItemStack` key.
+   - Later mutation of that same stack can invalidate the inventory summary and incorrectly affect promises.
+   - This mod always copies the stack key with count 1, matching the upstream PR.
 
-This is an early alpha. Defaults are intentionally conservative and need profiling in real modpacks before a public release.
+The third change in upstream PR #10496 guards client-side arrival submission. This mod is dedicated-server-only, so that client/integrated-server-only part is intentionally not included.
 
-## Planned work
+## Installation
 
-1. Dynamic frame-budget pressure instead of static thresholds alone.
-2. Shadow and glint budgeting.
-3. Compatibility tests with Sodium, ImmediatelyFast, EntityCulling, Iris/Sable, GeckoLib, Create/Flywheel and Accelerated Rendering.
+Put the built JAR in the **server** `mods` folder only.
 
-## Build
+Requirements:
+- Minecraft 1.21.1
+- NeoForge 21.1.x
+- Create 6.0.11
 
-Seaborgium targets Java 21, Minecraft 1.21.1 and NeoForge 21.1.248.
+Clients do not need this mod.
 
-```bash
-./gradlew build
-```
+## Scope
 
-The built JAR is written to `build/libs`.
+This mod does not change Factory Gauge targets, recipes, Mixer speed, package sizes, redstone logic, or request intervals.
