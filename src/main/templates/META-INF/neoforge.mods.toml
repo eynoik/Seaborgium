@@ -10,7 +10,7 @@ version="${mod_version}"
 displayName="${mod_name}"
 displayURL="https://github.com/eynoik/Seaborgium/tree/create-logistics-overrequest-fix"
 authors="eynoik"
-description='''Dedicated-server fix for Create 6.0.11 Factory Gauge / Packager over-requesting.'''
+description='''Dedicated-server fix for Create 6.0.10 Factory Gauge / Packager over-requesting.'''
 
 [[mixins]]
 config="${mod_id}.mixins.json"
