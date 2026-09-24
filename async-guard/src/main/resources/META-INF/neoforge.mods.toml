@@ -1,0 +1,49 @@
+modLoader="javafml"
+loaderVersion="[1,)"
+license="All Rights Reserved"
+
+[[mods]]
+modId="asyncsablefix"
+version="0.2.0"
+displayName="AsyncGuard"
+authors="eynoik"
+description='''
+Compatibility and thread-safety guard pack for Async 0.2.0 alpha on Minecraft 1.21.1.
+Preserves the proven Sable collision/raycast protections from AsyncSableFix while also carrying
+general Async compatibility fixes for chunk access, AttributeMap/Lithium and synchronous safety rules
+for unsafe entity families. 0.2.0 additionally protects PneumaticCraft 8.2.23 target-tracking state from
+concurrent Async entity ticks, preventing Int2IntOpenHashMap corruption in PneumaticArmorHandler.
+The legacy technical mod id "asyncsablefix" is intentionally retained so an old and new JAR cannot
+silently coexist and apply the same compatibility mixins twice.
+'''
+
+[[mixins]]
+config="asyncguard.mixins.json"
+
+[[dependencies.asyncsablefix]]
+modId="neoforge"
+type="required"
+versionRange="[21.1,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.asyncsablefix]]
+modId="minecraft"
+type="required"
+versionRange="[1.21.1,1.21.2)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.asyncsablefix]]
+modId="async"
+type="required"
+versionRange="[0.2.0,0.3.0)"
+ordering="AFTER"
+side="SERVER"
+
+[[dependencies.asyncsablefix]]
+modId="sable"
+type="required"
+versionRange="[2.0.5,2.1.0)"
+ordering="AFTER"
+side="SERVER"

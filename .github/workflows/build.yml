@@ -1,4 +1,4 @@
-name: Build
+name: Build AsyncGuard
 
 on: [push, pull_request]
 
@@ -21,12 +21,12 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build with Gradle
-        run: ./gradlew build
+      - name: Build AsyncGuard
+        run: ./gradlew -p async-guard build
 
-      - name: Upload built JAR
+      - name: Upload AsyncGuard JAR
         uses: actions/upload-artifact@v4
         with:
-          name: seaborgium-${{ github.sha }}
-          path: build/libs/*.jar
+          name: asyncguard-${{ github.sha }}
+          path: async-guard/build/libs/*.jar
           if-no-files-found: error

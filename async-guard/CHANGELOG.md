@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.0 — AsyncGuard rename + PneumaticCraft thread-safety
+
+- Renamed the public project/JAR from AsyncSableFix to **AsyncGuard** because the mod now carries general Async compatibility protections.
+- Moved the module directory from `async-sable-fix/` to `async-guard/`.
+- Kept the technical NeoForge mod id `asyncsablefix` intentionally so old and new JARs cannot silently coexist and double-apply the same mixins.
+- Added `PneumaticArmorHandlerThreadSafetyMixin` for PneumaticCraft 8.2.23.
+- Reproduced failure: concurrent Async entity target changes corrupt PneumaticCraft's static fastutil target map, causing `ArrayIndexOutOfBoundsException: Index -1 out of bounds for length 257` in `Int2IntOpenHashMap.rehash()`.
+- Wrapped PneumaticCraft `targetingTracker` with fastutil's synchronized map wrapper.
+- Replaced the warning aggregation map with concurrent outer and per-player inner maps so `computeIfAbsent`, `merge`, `forEach` and `clear` can safely overlap across Async workers and the main server thread.
+- Entity ticking stays asynchronous; the fix does not blacklist all PneumaticCraft mobs or disable Async globally.
+- Preserved all 0.1.7 and earlier Sable, chunk/raycast, AttributeMap/Lithium and entity-family compatibility protections.
+
 ## 0.1.7
 
 - Reworked Sable collision compatibility after real vehicle testing exposed missing floor collision, broken seat/typewriter tracking, repeated `Enormous local sub-level collision bounds` spam and destructive disassembly symptoms on a stationary camper.

@@ -10,7 +10,8 @@
     "LevelCollisionNoWaitMixin",
     "AttributeMapThreadSafetyMixin",
     "BlockGetterClipGuardMixin",
-    "LevelClipNoLoadMixin"
+    "LevelClipNoLoadMixin",
+    "PneumaticArmorHandlerThreadSafetyMixin"
   ],
   "injectors": {
     "defaultRequire": 1

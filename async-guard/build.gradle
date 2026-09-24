@@ -4,10 +4,10 @@ plugins {
 }
 
 group = 'dev.eynoik'
-version = '0.1.7'
+version = '0.2.0'
 
 base {
-    archivesName = 'asyncsablefix'
+    archivesName = 'asyncguard'
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
