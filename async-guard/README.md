@@ -18,6 +18,8 @@ No tax item is deleted: MCA's tax items remain in `village.storageBuffer` and ca
 
 This does not force-load chunks and does not change normal chest/container insertion when the target chunk is already loaded.
 
+Runtime test: keep the village-center chunk loaded while at least one MCA storage-building chunk is unloaded, trigger/enter the village so tax delivery runs, and verify that the server does not enter `ServerChunkCache.getChunk` for the unloaded storage position. After loading that storage chunk, the buffered tax items should still be deliverable.
+
 ## 0.2.1 — Hundred Years Warfare + Curios/Relics races
 
 - HYW 0.7.1r: serialize only `PathingTaskManagerRegistry.computeIfAbsent`; HYW entity AI remains asynchronous.
