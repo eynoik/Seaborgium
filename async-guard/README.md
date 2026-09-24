@@ -24,6 +24,8 @@ The damage event originated from an Iron's Spells mob tick running on an Async w
 
 AsyncGuard now cancels only `CurioStacksHandler.update()` when the caller is an `Async-Tick-Pool-Thread-*` worker. The worker reads the already-published Curios stack state; Curios' normal server-thread update path remains untouched and performs the mutable recalculation.
 
+Runtime test for 0.2.1 should specifically exercise many HYW units entering/stopping ReturnToHome at once and repeated player damage while Relics/Curios equipment is active. Expected result: no `ConcurrentModificationException` in either HYW registry or `CurioStacksHandler.update()`.
+
 ## 0.2.0 — PneumaticCraft target-tracking race
 
 PneumaticCraft 8.2.23 keeps global target-tracking state in ordinary mutable maps. Async target changes were observed corrupting its fastutil `Int2IntOpenHashMap`, causing `ArrayIndexOutOfBoundsException` in `rehash()`.
