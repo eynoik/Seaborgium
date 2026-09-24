@@ -1,28 +1,36 @@
-# AsyncGuard 0.2.0
+# AsyncGuard 0.2.1
 
 Compatibility and thread-safety guard pack for Minecraft 1.21.1 / NeoForge 21.1.x and Async 0.2.0 alpha.
 
-AsyncGuard is the renamed successor to AsyncSableFix. The public project/JAR name is now general because the mod already protects more than Sable. The technical mod id remains `asyncsablefix` intentionally so an old AsyncSableFix JAR and AsyncGuard cannot silently load together and apply duplicate mixins.
+AsyncGuard is the renamed successor to AsyncSableFix. The public project/JAR name is general because the mod protects several Async incompatibilities. The technical mod id remains `asyncsablefix` intentionally so an old AsyncSableFix/AsyncGuard JAR cannot silently load together with a newer one and double-apply mixins.
+
+## 0.2.1 — Hundred Years Warfare + Curios/Relics races
+
+### Hundred Years Warfare 0.7.1r
+
+A real server log from 2026-09-23 showed:
+
+`ConcurrentModificationException -> HashMap.computeIfAbsent -> PathingTaskManagerRegistry.getTaskManager -> ReturnToHomeGoal`
+
+The call came from an Async entity worker while HYW soldiers were ticking in parallel. AsyncGuard now serializes only the registry's `computeIfAbsent` operation. HYW AI and entity ticks remain asynchronous.
+
+### Curios 9.5.1 + Relics 0.12.8
+
+A second real log showed:
+
+`ConcurrentModificationException -> CurioStacksHandler.update -> getStacks -> Relics EntityUtils.findEquippedCurios`
+
+The damage event originated from an Iron's Spells mob tick running on an Async worker. Curios 9.5.1's `getStacks()` calls `update()`, and that method iterates a mutable Guava `HashMultimap` of slot modifiers.
+
+AsyncGuard now cancels only `CurioStacksHandler.update()` when the caller is an `Async-Tick-Pool-Thread-*` worker. The worker reads the already-published Curios stack state; Curios' normal server-thread update path remains untouched and performs the mutable recalculation.
 
 ## 0.2.0 — PneumaticCraft target-tracking race
 
-A real server crash on 2026-09-24 exposed a second class of Async incompatibility unrelated to the existing chunk deadlock fixes.
+PneumaticCraft 8.2.23 keeps global target-tracking state in ordinary mutable maps. Async target changes were observed corrupting its fastutil `Int2IntOpenHashMap`, causing `ArrayIndexOutOfBoundsException` in `rehash()`.
 
-PneumaticCraft 8.2.23 keeps global target-tracking state in:
+0.2.0 made those tracking structures thread-safe without disabling Async entity ticking.
 
-- a fastutil `Int2IntOpenHashMap` used by `PneumaticArmorHandler.onMobTargetSet()`;
-- nested ordinary `HashMap` instances used for entity-tracker warning aggregation.
-
-Async can tick many mobs simultaneously. Their target changes can therefore fire `LivingChangeTargetEvent` from several `Async-Tick-Pool-Thread-*` workers at once. The same `Int2IntOpenHashMap` was observed throwing `ArrayIndexOutOfBoundsException: Index -1 out of bounds for length 257` inside `rehash()` on many Async workers, and later on the main server thread.
-
-0.2.0 keeps those entity ticks asynchronous. It only replaces PneumaticCraft's shared tracking state after class initialization:
-
-- `targetingTracker` is wrapped with fastutil's synchronized `Int2IntMap` wrapper;
-- `targetWarnings` becomes a concurrent outer map whose per-player warning maps are also concurrent.
-
-This removes concurrent structural mutation without synchronizing whole mobs, MineColonies, Hundred Years War, EnhancedAI, Mob Grinding Utils or the entire PneumaticCraft event bus.
-
-## Existing protections retained from 0.1.7
+## Existing protections retained
 
 - Sable `SubLevelEntityCollision.collide` critical section serialization;
 - Async-worker-only Sable LevelAccelerator loaded-only guards;
@@ -30,12 +38,11 @@ This removes concurrent structural mutation without synchronizing whole mobs, Mi
 - loaded-only block/fluid reads inside Async raycast scope;
 - non-blocking collision chunk lookup;
 - Async/Lithium `AttributeMap` dirty-set synchronization;
-- Create contraptions, MCA villagers and MineColonies citizens forced to synchronous ticking where already required.
+- Create contraptions, MCA villagers and MineColonies citizens forced to synchronous ticking where already required;
+- PneumaticCraft 8.2.23 target-tracking map protection.
 
 ## Upgrade
 
-Remove the old `asyncsablefix-0.1.7.jar` and install only the new `asyncguard-0.2.0.jar`.
+Remove the previous AsyncGuard/AsyncSableFix JAR and install only `asyncguard-0.2.1.jar`.
 
-Do not keep both. The retained legacy mod id is designed to make NeoForge reject that mistake instead of running duplicate compatibility mixins.
-
-Work lives on branch `asyncguard-0.2.0` under `async-guard/`.
+Work lives on branch `asyncguard-0.2.1` under `async-guard/`.

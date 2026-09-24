@@ -11,7 +11,9 @@
     "AttributeMapThreadSafetyMixin",
     "BlockGetterClipGuardMixin",
     "LevelClipNoLoadMixin",
-    "PneumaticArmorHandlerThreadSafetyMixin"
+    "PneumaticArmorHandlerThreadSafetyMixin",
+    "HundredYearsWarPathingRegistryMixin",
+    "CuriosAsyncWorkerUpdateGuardMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -4,17 +4,17 @@ license="All Rights Reserved"
 
 [[mods]]
 modId="asyncsablefix"
-version="0.2.0"
+version="0.2.1"
 displayName="AsyncGuard"
 authors="eynoik"
 description='''
 Compatibility and thread-safety guard pack for Async 0.2.0 alpha on Minecraft 1.21.1.
-Preserves the proven Sable collision/raycast protections from AsyncSableFix while also carrying
-general Async compatibility fixes for chunk access, AttributeMap/Lithium and synchronous safety rules
-for unsafe entity families. 0.2.0 additionally protects PneumaticCraft 8.2.23 target-tracking state from
-concurrent Async entity ticks, preventing Int2IntOpenHashMap corruption in PneumaticArmorHandler.
-The legacy technical mod id "asyncsablefix" is intentionally retained so an old and new JAR cannot
-silently coexist and apply the same compatibility mixins twice.
+Preserves the existing Sable collision/raycast, chunk-access, AttributeMap/Lithium, entity-family
+and PneumaticCraft target-tracking protections. 0.2.1 additionally serializes Hundred Years Warfare's
+PathingTaskManagerRegistry computeIfAbsent hot path and prevents Curios 9.5.1 from recalculating its
+mutable slot-modifier state on Async entity worker threads. Normal server-thread Curios updates remain
+unchanged. The legacy technical mod id "asyncsablefix" is intentionally retained so old and new JARs
+cannot silently coexist and apply the same compatibility mixins twice.
 '''
 
 [[mixins]]
