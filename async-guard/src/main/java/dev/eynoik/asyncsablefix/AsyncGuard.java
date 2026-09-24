@@ -9,6 +9,6 @@ public final class AsyncGuard {
     public static final String MOD_ID = "asyncsablefix";
 
     public AsyncGuard() {
-        System.out.println("[AsyncGuard] Loaded 0.2.1: Async compatibility/thread-safety guards active.");
+        System.out.println("[AsyncGuard] Loaded 0.2.2: Async compatibility/thread-safety guards active.");
     }
 }

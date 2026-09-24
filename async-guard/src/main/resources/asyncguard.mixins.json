@@ -13,7 +13,8 @@
     "LevelClipNoLoadMixin",
     "PneumaticArmorHandlerThreadSafetyMixin",
     "HundredYearsWarPathingRegistryMixin",
-    "CuriosAsyncWorkerUpdateGuardMixin"
+    "CuriosAsyncWorkerUpdateGuardMixin",
+    "McaVillageTaxesChunkGuardMixin"
   ],
   "injectors": {
     "defaultRequire": 1

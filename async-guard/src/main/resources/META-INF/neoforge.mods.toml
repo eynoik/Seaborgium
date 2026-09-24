@@ -4,17 +4,18 @@ license="All Rights Reserved"
 
 [[mods]]
 modId="asyncsablefix"
-version="0.2.1"
+version="0.2.2"
 displayName="AsyncGuard"
 authors="eynoik"
 description='''
 Compatibility and thread-safety guard pack for Async 0.2.0 alpha on Minecraft 1.21.1.
-Preserves the existing Sable collision/raycast, chunk-access, AttributeMap/Lithium, entity-family
-and PneumaticCraft target-tracking protections. 0.2.1 additionally serializes Hundred Years Warfare's
-PathingTaskManagerRegistry computeIfAbsent hot path and prevents Curios 9.5.1 from recalculating its
-mutable slot-modifier state on Async entity worker threads. Normal server-thread Curios updates remain
-unchanged. The legacy technical mod id "asyncsablefix" is intentionally retained so old and new JARs
-cannot silently coexist and apply the same compatibility mixins twice.
+Preserves the existing Sable collision/raycast, chunk-access, AttributeMap/Lithium, entity-family,
+PneumaticCraft, Hundred Years Warfare and Curios/Relics protections. 0.2.2 additionally guards
+Minecraft Comes Alive 7.7.36-beta.3 village-tax delivery: storage blocks in chunks that are not
+already loaded are skipped instead of allowing VillageTaxesManager#getBlockState to synchronously
+enter ServerChunkCache/C2ME chunk loading and watchdog the server. Tax items stay buffered for a
+later delivery attempt. The legacy technical mod id "asyncsablefix" is intentionally retained so
+old and new JARs cannot silently coexist and apply the same compatibility mixins twice.
 '''
 
 [[mixins]]

@@ -1,50 +1,44 @@
-# AsyncGuard 0.2.1
+# AsyncGuard 0.2.2
 
 Compatibility and thread-safety guard pack for Minecraft 1.21.1 / NeoForge 21.1.x and Async 0.2.0 alpha.
 
-AsyncGuard is the renamed successor to AsyncSableFix. The public project/JAR name is general because the mod protects several Async incompatibilities. The technical mod id remains `asyncsablefix` intentionally so an old AsyncSableFix/AsyncGuard JAR cannot silently load together with a newer one and double-apply mixins.
+AsyncGuard is the renamed successor to AsyncSableFix. The technical mod id remains `asyncsablefix` intentionally so an old AsyncSableFix/AsyncGuard JAR cannot silently coexist with a newer one and double-apply mixins.
+
+## 0.2.2 — MCA village-tax unloaded-chunk watchdog
+
+A real server watchdog from 2026-09-23 on MCA `7.7.36-beta.3+1.21.1` showed:
+
+`VillageTaxesManager.tryToPutIntoInventory -> Level.getBlockState -> Level.getChunk -> ServerChunkCache/C2ME`
+
+MCA's `deliverTaxes()` checks only whether the chunk containing the village **center** is loaded. It then iterates every recorded block position belonging to storage buildings. A storage block can be in a different chunk.
+
+Before MCA reads block state for a storage position, AsyncGuard now performs the same strict loaded-only FULL-chunk lookup already used by its other non-blocking chunk protections. If that exact chunk is not already loaded, the storage position is skipped.
+
+No tax item is deleted: MCA's tax items remain in `village.storageBuffer` and can be delivered on a later pass when the storage chunk is loaded.
+
+This does not force-load chunks and does not change normal chest/container insertion when the target chunk is already loaded.
 
 ## 0.2.1 — Hundred Years Warfare + Curios/Relics races
 
-### Hundred Years Warfare 0.7.1r
-
-A real server log from 2026-09-23 showed:
-
-`ConcurrentModificationException -> HashMap.computeIfAbsent -> PathingTaskManagerRegistry.getTaskManager -> ReturnToHomeGoal`
-
-The call came from an Async entity worker while HYW soldiers were ticking in parallel. AsyncGuard now serializes only the registry's `computeIfAbsent` operation. HYW AI and entity ticks remain asynchronous.
-
-### Curios 9.5.1 + Relics 0.12.8
-
-A second real log showed:
-
-`ConcurrentModificationException -> CurioStacksHandler.update -> getStacks -> Relics EntityUtils.findEquippedCurios`
-
-The damage event originated from an Iron's Spells mob tick running on an Async worker. Curios 9.5.1's `getStacks()` calls `update()`, and that method iterates a mutable Guava `HashMultimap` of slot modifiers.
-
-AsyncGuard now cancels only `CurioStacksHandler.update()` when the caller is an `Async-Tick-Pool-Thread-*` worker. The worker reads the already-published Curios stack state; Curios' normal server-thread update path remains untouched and performs the mutable recalculation.
-
-Runtime test for 0.2.1 should specifically exercise many HYW units entering/stopping ReturnToHome at once and repeated player damage while Relics/Curios equipment is active. Expected result: no `ConcurrentModificationException` in either HYW registry or `CurioStacksHandler.update()`.
+- HYW 0.7.1r: serialize only `PathingTaskManagerRegistry.computeIfAbsent`; HYW entity AI remains asynchronous.
+- Curios 9.5.1 + Relics 0.12.8: skip `CurioStacksHandler.update()` only on Async tick workers, leaving mutable slot recalculation to the normal server thread.
 
 ## 0.2.0 — PneumaticCraft target-tracking race
 
-PneumaticCraft 8.2.23 keeps global target-tracking state in ordinary mutable maps. Async target changes were observed corrupting its fastutil `Int2IntOpenHashMap`, causing `ArrayIndexOutOfBoundsException` in `rehash()`.
-
-0.2.0 made those tracking structures thread-safe without disabling Async entity ticking.
+PneumaticCraft 8.2.23 target-tracking maps are protected against concurrent Async target-change events.
 
 ## Existing protections retained
 
-- Sable `SubLevelEntityCollision.collide` critical section serialization;
-- Async-worker-only Sable LevelAccelerator loaded-only guards;
-- Mowzie/entity-tracking LOS/raycast watchdog protection;
-- loaded-only block/fluid reads inside Async raycast scope;
-- non-blocking collision chunk lookup;
-- Async/Lithium `AttributeMap` dirty-set synchronization;
-- Create contraptions, MCA villagers and MineColonies citizens forced to synchronous ticking where already required;
-- PneumaticCraft 8.2.23 target-tracking map protection.
+- Sable collision/raycast guards;
+- non-blocking collision/chunk lookup;
+- Async/Lithium `AttributeMap` dirty-set protection;
+- sync safety rules for Create contraptions, MCA villagers and MineColonies citizens;
+- PneumaticCraft target tracking;
+- Hundred Years Warfare pathing registry;
+- Curios/Relics off-thread slot-update guard.
 
 ## Upgrade
 
-Remove the previous AsyncGuard/AsyncSableFix JAR and install only `asyncguard-0.2.1.jar`.
+Remove the previous AsyncGuard/AsyncSableFix JAR and install only `asyncguard-0.2.2.jar`.
 
-Work lives on branch `asyncguard-0.2.1` under `async-guard/`.
+Work lives on branch `asyncguard-0.2.2` under `async-guard/`.
